@@ -1,16 +1,3 @@
-"""
-Knights of Eldoria - AI Simulation
-CPS7004 Artificial Intelligence Assessment
-
-This implementation models a medieval kingdom where treasure hunters navigate
-through the realm, collecting treasures while avoiding knights. The simulation
-uses several AI techniques including:
-- Pathfinding with A* algorithm
-- State machines for agent behavior
-- Knowledge representation and sharing
-- Reinforcement learning for strategy optimization
-"""
-
 import enum
 import math
 import os
