@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#12091e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Eldoria" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="description" content="A dark fantasy simulation — become a hunter, outwit the knights, collect the treasure!" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+
+  <title>Knights of Eldoria</title>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #ffd720; --gold2: #c8960a; --purple: #9060e8;
+      --text: #ddd0ff; --dim: #7060a0; --border: #3c2870;
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: #06060e; color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Canvas (pygbag injects here) ──────────────────────────────────── */
+    #canvas {
+      display: none;
+      position: fixed; inset: 0;
+      width: 100% !important; height: 100% !important;
+    }
+
+    /* ── Landing ───────────────────────────────────────────────────────── */
+    #landing {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 30%, rgba(120,50,200,.25) 0%, transparent 70%),
+        linear-gradient(180deg, #06060e 0%, #0a071a 100%);
+      padding: 1.5rem; overflow-y: auto; gap: 0;
+    }
+    .stars { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+    .star  { position: absolute; border-radius: 50%; background: #fff; opacity: 0;
+             animation: twinkle var(--d,4s) var(--delay,0s) infinite ease-in-out; }
+    @keyframes twinkle { 0%,100%{opacity:0} 50%{opacity:var(--max-op,.5)} }
+
+    .content { position: relative; z-index: 1; text-align: center; max-width: 480px; width: 100%; }
+
+    .logo-wrap img {
+      width: 96px; height: 96px; border-radius: 18px; margin-bottom: .5rem;
+      box-shadow: 0 0 32px rgba(144,96,232,.6), 0 0 8px rgba(255,215,32,.3);
+      animation: pulse-glow 3s infinite ease-in-out;
+    }
+    @keyframes pulse-glow {
+      0%,100%{box-shadow:0 0 28px rgba(144,96,232,.5),0 0 8px rgba(255,215,32,.2)}
+      50%    {box-shadow:0 0 52px rgba(144,96,232,.9),0 0 20px rgba(255,215,32,.5)}
+    }
+
+    h1 {
+      font-size: clamp(1.8rem,6vw,2.8rem); font-weight: 800; letter-spacing: .04em;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 40%, var(--purple) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; line-height: 1.1; margin-bottom: .25rem;
+    }
+    .tagline { font-size: .95rem; color: var(--dim); margin-bottom: 1.6rem; line-height: 1.5; }
+
+    .badges { display: flex; flex-wrap: wrap; justify-content: center; gap: .45rem; margin-bottom: 1.6rem; }
+    .badge  { background: rgba(60,40,112,.5); border: 1px solid var(--border);
+               border-radius: 20px; padding: .28rem .72rem; font-size: .76rem; }
+
+    .btn-play {
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      width: 100%; max-width: 320px; padding: 1rem 1.5rem;
+      background: linear-gradient(135deg,#a06010,var(--gold2),#a06010);
+      background-size: 200% 100%;
+      border: none; border-radius: 12px; color: #1a0e00;
+      font-size: 1.15rem; font-weight: 800; letter-spacing: .06em;
+      cursor: pointer; text-transform: uppercase;
+      box-shadow: 0 4px 24px rgba(200,150,10,.5);
+      animation: gold-shimmer 3s infinite linear;
+      transition: transform .12s, box-shadow .12s;
+      margin-bottom: .75rem;
+    }
+    @keyframes gold-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .btn-play:hover  { transform:translateY(-2px); box-shadow:0 8px 32px rgba(200,150,10,.7); }
+    .btn-play:active { transform:translateY(0);    box-shadow:0 2px 12px rgba(200,150,10,.4); }
+
+    .btn-install {
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      width: 100%; max-width: 320px; padding: .75rem 1.5rem;
+      background: rgba(60,40,112,.6); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text); font-size: .95rem; font-weight: 600;
+      cursor: pointer; transition: background .15s, transform .12s; margin-bottom: 1.2rem;
+    }
+    .btn-install:hover { background: rgba(80,55,145,.8); transform: translateY(-1px); }
+    .btn-install.hidden { display: none; }
+
+    .ios-hint {
+      display: none; background: rgba(18,9,40,.85); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1rem;
+      text-align: left; font-size: .85rem; line-height: 1.7; max-width: 340px; width: 100%;
+    }
+    .ios-hint h3 { font-size: .9rem; color: var(--gold); margin-bottom: .4rem; }
+    .ios-hint.show { display: block; }
+
+    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin-bottom: .8rem; }
+    .key       { background:rgba(40,30,80,.7); border:1px solid var(--border); border-radius:6px;
+                 padding:.2rem .55rem; font-family:monospace; font-size:.8rem; color:var(--gold); }
+    .key-label { font-size:.8rem; color:var(--dim); }
+    .footer    { font-size:.72rem; color:var(--dim); }
+
+    /* ── Loading overlay ────────────────────────────────────────────────── */
+    #loading {
+      display: none; position: fixed; inset: 0; background: #06060e;
+      flex-direction: column; align-items: center; justify-content: center; z-index: 200;
+    }
+    #loading.show { display: flex; }
+    .loader-title {
+      font-size: 1.6rem; font-weight: 800; margin-bottom: 1.2rem;
+      background: linear-gradient(135deg,var(--gold),var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .loader-bar-wrap { width: 280px; height: 8px; background: rgba(60,40,112,.4);
+                       border-radius: 4px; overflow: hidden; margin-bottom: .75rem; }
+    .loader-bar { height: 100%; width: 0%; background: linear-gradient(90deg,var(--gold2),var(--gold));
+                  border-radius: 4px; transition: width .4s ease; }
+    .loader-msg { font-size: .85rem; color: var(--dim); }
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<!-- Loading screen -->
+<div id="loading">
+  <div class="loader-title">⚔ Knights of Eldoria</div>
+  <div class="loader-bar-wrap"><div class="loader-bar" id="loader-bar"></div></div>
+  <div class="loader-msg" id="loader-msg">Loading…</div>
+</div>
+
+<!-- Pygbag canvas (hidden until game starts) -->
+<canvas id="canvas"></canvas>
+
+<!-- Landing page -->
+<div id="landing">
+  <div class="content">
+    <div class="logo-wrap"><img src="icon-192.png" alt="Knights of Eldoria" /></div>
+    <h1>Knights of Eldoria</h1>
+    <p class="tagline">A dark fantasy simulation.<br>Become a hunter. Outwit the knights. Claim the treasure.</p>
+    <div class="badges">
+      <span class="badge">⚔ Hero Mode</span>
+      <span class="badge">🛡 3 Abilities</span>
+      <span class="badge">🌩 Wave System</span>
+      <span class="badge">👑 Boss Knights</span>
+      <span class="badge">🏆 25 Achievements</span>
+      <span class="badge">📱 Mobile Ready</span>
+    </div>
+    <button class="btn-play" id="btn-play">▶ &nbsp;PLAY NOW</button>
+    <button class="btn-install hidden" id="btn-install">⬇ &nbsp;Install App</button>
+    <div class="ios-hint" id="ios-hint">
+      <h3>📱 Install on iPhone / iPad</h3>
+      Tap <strong>Share</strong> (box-with-arrow icon in Safari), then choose
+      <strong>"Add to Home Screen"</strong>.
+    </div>
+    <div class="controls">
+      <span class="key">W A S D</span><span class="key-label">or</span>
+      <span class="key">Arrow Keys</span><span class="key-label">— Move &nbsp;</span>
+      <span class="key">Q</span><span class="key-label">Dash &nbsp;</span>
+      <span class="key">E</span><span class="key-label">Cloak &nbsp;</span>
+      <span class="key">R</span><span class="key-label">Rally &nbsp;</span>
+      <span class="key">ESC</span><span class="key-label">Pause</span>
+    </div>
+    <p class="footer">Touch D-pad on mobile &nbsp;·&nbsp; Works offline after first load</p>
+  </div>
+</div>
+
+<script>
+// ── Stars ─────────────────────────────────────────────────────────────────
+(function(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<120;i++){
+    const el=document.createElement('div'); el.className='star';
+    const sz=Math.random()*2.5+0.5;
+    el.style.cssText=[
+      `width:${sz}px`,`height:${sz}px`,
+      `left:${Math.random()*100}%`,`top:${Math.random()*100}%`,
+      `--d:${(Math.random()*4+2).toFixed(1)}s`,
+      `--delay:${(Math.random()*6).toFixed(1)}s`,
+      `--max-op:${(Math.random()*.5+.2).toFixed(2)}`,
+    ].join(';');
+    c.appendChild(el);
+  }
+})();
+
+// ── PWA install ───────────────────────────────────────────────────────────
+let deferredPrompt=null;
+const btnI=document.getElementById('btn-install');
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e; btnI.classList.remove('hidden');
+});
+btnI.addEventListener('click',async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  const{outcome}=await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  if(outcome==='accepted') btnI.classList.add('hidden');
+});
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+const isStandalone=('standalone' in navigator)&&navigator.standalone;
+if(isIOS&&!isStandalone) document.getElementById('ios-hint').classList.add('show');
+
+// ── Service worker ────────────────────────────────────────────────────────
+if('serviceWorker' in navigator)
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ── Launch game ───────────────────────────────────────────────────────────
+document.getElementById('btn-play').addEventListener('click',()=>{
+  document.getElementById('landing').style.display='none';
+  const load=document.getElementById('loading');
+  load.classList.add('show');
+
+  // Show canvas for pygbag
+  const cv=document.getElementById('canvas');
+  cv.style.display='block';
+  cv.style.position='fixed';
+  cv.style.inset='0';
+  cv.style.width='100%';
+  cv.style.height='100%';
+
+  // Progress animation while WASM loads
+  const bar=document.getElementById('loader-bar');
+  const msg=document.getElementById('loader-msg');
+  const steps=[
+    [15,'Loading WebAssembly…'],
+    [35,'Unpacking Python…'],
+    [58,'Loading game assets…'],
+    [78,'Initialising world…'],
+    [92,'Summoning knights…'],
+    [100,'Ready!'],
+  ];
+  let i=0;
+  function step(){
+    if(i>=steps.length){
+      // Hide loader; pygbag canvas is now visible
+      setTimeout(()=>load.classList.remove('show'),500);
+      return;
+    }
+    const[pct,text]=steps[i++];
+    bar.style.width=pct+'%'; msg.textContent=text;
+    setTimeout(step, pct===100 ? 700 : 900);
+  }
+  step();
+
+  // Boot pygbag
+  bootPygbag();
+});
+
+// ── Pygbag bootstrap ──────────────────────────────────────────────────────
+function bootPygbag(){
+  // pygbag reads window.canvas and window.Python to pick the canvas element
+  window.canvas = document.getElementById('canvas');
+
+  const s = document.createElement('script');
+  s.type  = 'module';
+  // The pygbag CDN runtime + our game archive
+  s.innerHTML = JSON.stringify({
+    autorun: true,
+    workers: false,
+    archive: 'knights-of-eldoria-.tar.gz',
+  });
+  s.src = 'https://pygame-web.github.io/cdn/0.9.3/pythons.js';
+  s.defer = true;
+  document.head.appendChild(s);
+}
+</script>
+
+</body>
+</html>

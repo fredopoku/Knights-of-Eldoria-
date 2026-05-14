@@ -38,6 +38,13 @@ class Game:
         self._current: object | None = None
         self._next:    tuple  | None = None
 
+        # Touch gamepad — active on web/mobile, hidden on desktop until touch used
+        from src.touch_ui import TouchGamepad
+        self.touch = TouchGamepad()
+        # Auto-detect web/Pygbag environment
+        import sys as _sys
+        self.is_web = _sys.platform in ('emscripten', 'wasi')
+
         self.change_state("menu")
 
     # ------------------------------------------------------------------
@@ -94,56 +101,83 @@ class Game:
 
     # ------------------------------------------------------------------
     def run(self):
+        """Desktop blocking loop — calls frame() until game ends."""
         while self.running:
-            dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
-
-            # get_surface() is always authoritative on every platform
-            surface = pygame.display.get_surface()
-
-            self._apply_transition()
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                    break
-                elif event.type in (pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT):
-                    pass
-                elif not self._error and self._current:
-                    try:
-                        self._current.handle_event(event)
-                    except Exception:
-                        pass
-
-            if self._error:
-                try:
-                    self._draw_error(surface)
-                except Exception:
-                    surface.fill((20, 0, 0))
-                keys = pygame.key.get_pressed()
-                if keys[pygame.K_ESCAPE]:
-                    self._error   = None
-                    self._current = None
-                    self.change_state("menu")
-            elif self._current:
-                try:
-                    self._current.update(dt)
-                except Exception:
-                    self._error = traceback.format_exc()
-
-                surface.fill(C_BG)
-                try:
-                    self._current.draw(surface)
-                except Exception:
-                    self._error = traceback.format_exc()
-            else:
-                surface.fill(C_BG)
-
-            # pump() keeps the Cocoa swap chain alive on macOS
-            pygame.event.pump()
-            pygame.display.flip()
-
+            self.frame()
         pygame.quit()
         sys.exit()
+
+    def frame(self):
+        """Single frame: events → update → draw → flip.
+        Called by run() on desktop and by the async loop (Pygbag) on web."""
+        dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
+        surface = pygame.display.get_surface()
+
+        self._apply_transition()
+
+        raw_events = pygame.event.get()
+        # Expand touch/mouse events through the virtual gamepad
+        all_events = []
+        for event in raw_events:
+            all_events.append(event)
+            synth = self.touch.handle_mouse_event(event)
+            all_events.extend(synth)
+
+        for event in all_events:
+            if event.type == pygame.QUIT:
+                self.running = False
+                return
+            elif event.type in (pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT):
+                pass
+            elif not self._error and self._current:
+                try:
+                    self._current.handle_event(event)
+                except Exception:
+                    pass
+
+        if self._error:
+            try:
+                self._draw_error(surface)
+            except Exception:
+                surface.fill((20, 0, 0))
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_ESCAPE]:
+                self._error   = None
+                self._current = None
+                self.change_state("menu")
+        elif self._current:
+            try:
+                self._current.update(dt)
+            except Exception:
+                self._error = traceback.format_exc()
+
+            surface.fill(C_BG)
+            try:
+                self._current.draw(surface)
+            except Exception:
+                self._error = traceback.format_exc()
+
+            # Touch gamepad — always visible on web, only in play on desktop
+            if self.is_web or self._is_play_state():
+                abilities = self._get_play_abilities()
+                self.touch.draw(surface, abilities=abilities)
+        else:
+            surface.fill(C_BG)
+
+        pygame.event.pump()
+        pygame.display.flip()
+
+    def _is_play_state(self) -> bool:
+        return (self._current is not None and
+                type(self._current).__name__ == "PlayState")
+
+    def _get_play_abilities(self):
+        if not self._is_play_state():
+            return None
+        try:
+            return getattr(self._current, '_abilities', None)
+        except Exception:
+            return None
 
     # ------------------------------------------------------------------
     def _draw_error(self, surface: pygame.Surface):
