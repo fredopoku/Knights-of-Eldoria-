@@ -384,7 +384,7 @@ class GameRenderer:
         elif e.state == KnightState.CHALLENGING:
             fs = max(10, ts // 2)
             font = get_font(fs, bold=True)
-            t = font.render("⚔", True, C_RED)
+            t = font.render("X", True, C_RED)
             self.screen.blit(t, (cx - t.get_width()//2, cy - ts - 2 + bob))
 
         # Energy bar

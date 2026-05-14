@@ -31,12 +31,16 @@ class Particle:
     def draw(self, surface: pygame.Surface, offset=(0, 0)):
         if self.life <= 0:
             return
-        alpha = int(255 * (self.life / self.max_life)) if self.fade else 255
-        r = max(1, int(self.radius * (self.life / self.max_life)))
+        t  = self.life / self.max_life   # 1.0 → 0.0
+        r  = max(1, int(self.radius * t))
         cx = int(self.x - offset[0])
         cy = int(self.y - offset[1])
         if -r < cx < surface.get_width() + r and -r < cy < surface.get_height() + r:
-            col = (*self.color[:3], alpha)
+            # Darken toward black as t → 0 (works on any surface type)
+            if self.fade:
+                col = tuple(max(0, int(c * t)) for c in self.color[:3])
+            else:
+                col = self.color[:3]
             try:
                 pygame.draw.circle(surface, col, (cx, cy), r)
             except Exception:

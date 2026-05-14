@@ -72,18 +72,23 @@ class MenuState:
                    callback=self._quit, font_size=20),
         ]
 
-        # Mode select buttons
-        mw, mh = 340, 100
+        # Mode select buttons  (no \n — descriptions drawn separately)
+        mw, mh = 340, 90
         mx = WINDOW_WIDTH // 2 - mw // 2
         self._mode_btns = [
-            Button(pygame.Rect(mx, 250, mw, mh), "WATCH MODE\nObserve AI hunters & knights",
-                   callback=lambda: self._pick_mode(MODE_WATCH), font_size=20),
-            Button(pygame.Rect(mx, 365, mw, mh), "COMMAND MODE\nStrategically direct your hunters",
-                   callback=lambda: self._pick_mode(MODE_COMMAND), font_size=20),
-            Button(pygame.Rect(mx, 480, mw, mh), "HERO MODE\nControl a hunter yourself",
-                   callback=lambda: self._pick_mode(MODE_HERO), font_size=20),
-            Button(pygame.Rect(mx, 600, 160, 44), "← BACK",
+            Button(pygame.Rect(mx, 250, mw, mh), "WATCH MODE",
+                   callback=lambda: self._pick_mode(MODE_WATCH), font_size=22),
+            Button(pygame.Rect(mx, 355, mw, mh), "COMMAND MODE",
+                   callback=lambda: self._pick_mode(MODE_COMMAND), font_size=22),
+            Button(pygame.Rect(mx, 460, mw, mh), "HERO MODE",
+                   callback=lambda: self._pick_mode(MODE_HERO), font_size=22),
+            Button(pygame.Rect(mx, 580, 160, 44), "BACK",
                    callback=lambda: self._set_sub("main")),
+        ]
+        self._mode_descs = [
+            "Observe the AI simulation unfold",
+            "Click hunters to issue move commands",
+            "Control a hunter with WASD keys",
         ]
 
         # Difficulty buttons
@@ -214,15 +219,11 @@ class MenuState:
         draw_text(surface, "SELECT GAME MODE", WINDOW_WIDTH//2, 170,
                   size=36, color=C_UI_TEXT_BRIGHT, bold=True,
                   align="center", shadow=True)
-        # Mode descriptions drawn inside buttons (multi-line handled in draw)
-        for b in self._mode_btns:
+        for i, b in enumerate(self._mode_btns):
             b.draw(surface)
-            # Sub-label (second line)
-            if "\n" in b.label:
-                parts = b.label.split("\n")
-                draw_text(surface, parts[0], b.rect.centerx, b.rect.top + 12,
-                          size=22, color=C_UI_TEXT_BRIGHT, bold=True, align="center")
-                draw_text(surface, parts[1], b.rect.centerx, b.rect.top + 42,
+            if i < len(self._mode_descs):
+                draw_text(surface, self._mode_descs[i],
+                          b.rect.centerx, b.rect.bottom - 22,
                           size=14, color=C_UI_TEXT_DIM, align="center")
 
     def _draw_difficulty(self, surface: pygame.Surface):

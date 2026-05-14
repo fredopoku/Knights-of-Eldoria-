@@ -77,7 +77,10 @@ class SettingsState:
 
     def _back(self):
         self.game.settings.save()
-        self.game.change_state(self._return_to)
+        if self._return_to == "play":
+            self.game.change_state("play", _resume=True)
+        else:
+            self.game.change_state(self._return_to)
 
     # ------------------------------------------------------------------
     # Lifecycle

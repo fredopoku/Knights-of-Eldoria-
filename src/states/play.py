@@ -72,11 +72,21 @@ class PlayState:
         self._toast_timer   = 0.0
         self._toast_text    = ""
 
+        # Inline pause overlay
+        self._show_pause_overlay = False
+        self._pause_buttons: list[Button] = []
+
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
     def enter(self, mode: str = MODE_WATCH,
-              difficulty: str = DIFF_NORMAL, **kwargs):
+              difficulty: str = DIFF_NORMAL,
+              _resume: bool = False, **kwargs):
+        # Resuming from pause / settings — don't tear down the simulation
+        if _resume and self.sim is not None:
+            self._running = True
+            return
+
         self.mode       = mode
         self.difficulty = difficulty
         self._running   = True
@@ -128,6 +138,20 @@ class PlayState:
 
         # Fetch saved speed
         self.speed = self.game.settings["sim_speed"]
+        self._show_pause_overlay = False
+
+        # Build inline pause overlay buttons
+        bw, bh = 240, 48
+        cx = WINDOW_WIDTH // 2
+        self._pause_buttons = [
+            Button(pygame.Rect(cx - bw//2, 280, bw, bh), "RESUME",
+                   callback=self._close_pause, font_size=22),
+            Button(pygame.Rect(cx - bw//2, 340, bw, bh), "SETTINGS",
+                   callback=lambda: self.game.change_state(
+                       "settings", return_to="play"), font_size=22),
+            Button(pygame.Rect(cx - bw//2, 400, bw, bh), "MAIN MENU",
+                   callback=lambda: self.game.change_state("menu"), font_size=22),
+        ]
 
         # Achievement: mode-specific
         if mode == MODE_WATCH:
@@ -176,6 +200,14 @@ class PlayState:
         sim.add_listener("recruit",          on_recruit)
         sim.add_listener("recruit",          lambda: self.game.achievements.unlock("recruiter"))
 
+    def _open_pause(self):
+        self._show_pause_overlay = True
+        self._running = False
+
+    def _close_pause(self):
+        self._show_pause_overlay = False
+        self._running = True
+
     # ------------------------------------------------------------------
     # Toolbar
     # ------------------------------------------------------------------
@@ -209,7 +241,7 @@ class PlayState:
         # Pause menu
         self._toolbar.append(Button(
             pygame.Rect(x0 + 150, y0, 68, bh), "MENU",
-            callback=lambda: self.game.change_state("pause"),
+            callback=lambda: self._open_pause(),
             font_size=15,
         ))
 
@@ -223,6 +255,17 @@ class PlayState:
     # Input
     # ------------------------------------------------------------------
     def handle_event(self, event: pygame.event.Event):
+        # Inline pause overlay gets first pick
+        if self._show_pause_overlay:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self._close_pause()
+                return
+            for b in self._pause_buttons:
+                if b.handle_event(event):
+                    self.game.audio.play("ui_click")
+                    return
+            return   # block all other input while overlay is open
+
         # Pass to log for scroll
         if self._log:
             self._log.handle_event(event)
@@ -240,18 +283,8 @@ class PlayState:
 
     def _handle_key(self, event: pygame.event.Event):
         k = event.key
-        if k == pygame.K_ESCAPE:
-            self.game.change_state("pause")
-        elif k == pygame.K_SPACE:
-            self._running = not self._running
-        elif k in (pygame.K_MINUS, pygame.K_KP_MINUS):
-            self.speed = max(1, self.speed - 1)
-        elif k in (pygame.K_EQUALS, pygame.K_KP_PLUS):
-            self.speed = min(10, self.speed + 1)
-        elif k == pygame.K_s:
-            self._do_step()
 
-        # Hero movement (WASD / arrow keys)
+        # Hero mode — movement keys take full priority
         if self.mode == MODE_HERO and self._hero:
             dx, dy = 0, 0
             if   k in (pygame.K_w, pygame.K_UP):    dy = -1
@@ -263,14 +296,29 @@ class PlayState:
                 self._hero.hero_dy = dy
                 self._hero.update(self.sim)
                 self._cam_target_entity()
-                # Spawn dust
                 ts = self.renderer._tile_size if self.renderer else TILE_SIZE
-                sx = self._hero.position[0]*ts - int(self._cam_x)
-                sy = self._hero.position[1]*ts - int(self._cam_y)
+                mr = self.renderer.map_rect if self.renderer else pygame.Rect(0,0,WINDOW_WIDTH,WINDOW_HEIGHT)
+                sx = self._hero.position[0]*ts - int(self._cam_x) + mr.left
+                sy = self._hero.position[1]*ts - int(self._cam_y) + mr.top
                 self.particles.dust(sx + ts//2, sy + ts//2)
-                # Check hero collect
                 if self._hero.carried_treasure:
                     self._hero_collect = True
+                return   # don't fall through to other key bindings
+
+        # Non-hero key bindings
+        if k == pygame.K_ESCAPE:
+            if self._show_pause_overlay:
+                self._close_pause()
+            else:
+                self._open_pause()
+        elif k == pygame.K_SPACE:
+            self._running = not self._running
+        elif k in (pygame.K_MINUS, pygame.K_KP_MINUS):
+            self.speed = max(1, self.speed - 1)
+        elif k in (pygame.K_EQUALS, pygame.K_KP_PLUS, pygame.K_KP_EQUALS):
+            self.speed = min(10, self.speed + 1)
+        elif k == pygame.K_s:
+            self._do_step()
 
     def _handle_command_click(self, event: pygame.event.Event):
         """Click on a hunter to select, click elsewhere to move."""
@@ -384,6 +432,9 @@ class PlayState:
         for b in self._toolbar:
             b.update(dt)
 
+        for b in self._pause_buttons:
+            b.update(dt)
+
         # Toast
         if self._toast_queue and self._toast_timer <= 0:
             a = self._toast_queue.pop(0)
@@ -439,8 +490,8 @@ class PlayState:
                   10, size=13, color=C_UI_TEXT_DIM)
 
         # Pause indicator
-        if not self._running:
-            draw_text(surface, "⏸ PAUSED", WINDOW_WIDTH//2, 12,
+        if not self._running and not self._show_pause_overlay:
+            draw_text(surface, "|| PAUSED", WINDOW_WIDTH//2, 12,
                       size=24, color=C_YELLOW, bold=True, align="center")
 
         # Command mode selection highlight
@@ -465,6 +516,10 @@ class PlayState:
         # Achievement toast
         if self._toast_timer > 0:
             self._draw_toast(surface)
+
+        # Inline pause overlay
+        if self._show_pause_overlay:
+            self._draw_pause_overlay(surface)
 
         self.fade.draw(surface)
 
@@ -505,8 +560,25 @@ class PlayState:
         pygame.draw.rect(s, (*C_UI_BORDER_HI, a), s.get_rect(), width=1,
                          border_radius=5)
         font = get_font(16, bold=True)
-        ts   = font.render(self._toast_text, True,
-                           (220, 200, 150, a) if a < 255
-                           else (220, 200, 150))
+        ts   = font.render(self._toast_text, True, (220, 200, 150))
         s.blit(ts, (10, 14))
         surface.blit(s, (20, WINDOW_HEIGHT - 60))
+
+    def _draw_pause_overlay(self, surface: pygame.Surface):
+        # Dim everything
+        dim = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+        dim.fill((0, 0, 0, 160))
+        surface.blit(dim, (0, 0))
+
+        # Panel
+        pw, ph = 300, 220
+        pr = pygame.Rect((WINDOW_WIDTH - pw)//2, (WINDOW_HEIGHT - ph)//2 - 20,
+                         pw, ph)
+        draw_panel(surface, pr)
+        draw_text(surface, "PAUSED",
+                  WINDOW_WIDTH//2, pr.top + 16,
+                  size=32, color=C_UI_TEXT_BRIGHT, bold=True,
+                  align="center", shadow=True)
+
+        for b in self._pause_buttons:
+            b.draw(surface)
