@@ -3,74 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Knights of Eldoria</title>
+  <title>Knights of Eldoria — Debug</title>
   <style>
-    html, body { margin:0; padding:0; background:#000; width:100%; height:100%; overflow:hidden; }
+    html, body { margin:0; padding:0; background:#000; width:100%; height:100%; }
     #log {
-      position:fixed; top:0; left:0; right:0; bottom:0; z-index:999;
-      background:rgba(6,4,18,.96); color:#c0b0ff;
-      font-family:monospace; font-size:13px;
-      padding:12px; overflow-y:auto;
-      pointer-events:none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(4,2,14,.92);
+      color: #b0a0ff; font-family: monospace; font-size: 12px;
+      padding: 10px; overflow-y: auto;
     }
-    #log .ok  { color:#60e890; }
-    #log .err { color:#ff6060; }
-    #log .hd  { color:#ffd720; font-size:15px; font-weight:bold; margin-bottom:8px; }
-    #back { position:fixed; bottom:8px; left:10px; z-index:1000;
-            color:#9060e8; font-family:sans-serif; font-size:13px; text-decoration:none; }
+    #log .ok  { color: #50e870; }
+    #log .err { color: #ff5050; font-weight: bold; }
+    #log .warn { color: #ffcc00; }
+    #log .py  { color: #ff8860; }
+    #log h2   { color: #ffd720; font-size: 14px; margin-bottom: 6px; }
+    #back { display:block; margin-top:10px; color:#7050b0; font-size:12px; text-decoration:none; }
   </style>
 </head>
 <body>
+
 <div id="log">
-  <div class="hd">⚔ Knights of Eldoria — Loading…</div>
+  <h2>⚔ Knights of Eldoria — Python Debug Log</h2>
   <div id="lines"></div>
+  <a id="back" href="index.html">← Back to menu</a>
 </div>
-<a id="back" href="index.html">← Back</a>
 
 <script>
 const lines = document.getElementById('lines');
-function log(msg, cls) {
+let lineCount = 0;
+
+function addLine(msg, cls) {
+  if (lineCount > 200) return;
+  lineCount++;
   const d = document.createElement('div');
   if (cls) d.className = cls;
-  d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  d.textContent = msg;
   lines.appendChild(d);
+  lines.scrollTop = lines.scrollHeight;
 }
 
-// Catch all JS errors
-window.addEventListener('error', e => log('JS ERROR: ' + e.message + ' (' + e.filename + ':' + e.lineno + ')', 'err'));
-window.addEventListener('unhandledrejection', e => log('PROMISE ERROR: ' + e.reason, 'err'));
+// ── Intercept ALL console output (pygbag prints Python tracebacks here) ──
+const _origLog   = console.log.bind(console);
+const _origErr   = console.error.bind(console);
+const _origWarn  = console.warn.bind(console);
 
-log('Page loaded. Checking environment…');
-log('Platform: ' + navigator.userAgent.substring(0, 80));
+console.log = (...a) => { _origLog(...a); const s = a.join(' '); addLine(s, s.includes('Error') || s.includes('Traceback') ? 'py' : ''); };
+console.error = (...a) => { _origErr(...a); addLine('ERROR: ' + a.join(' '), 'err'); };
+console.warn  = (...a) => { _origWarn(...a); addLine('WARN: ' + a.join(' '), 'warn'); };
 
-// Test CDN reachability
-fetch('https://pygame-web.github.io/cdn/0.9.3/pythons.js', {method:'HEAD'})
-  .then(r => log('CDN reachable: HTTP ' + r.status, r.ok ? 'ok' : 'err'))
-  .catch(e => log('CDN UNREACHABLE: ' + e.message, 'err'));
+window.addEventListener('error', e => addLine('JS: ' + e.message + ' @ ' + e.filename + ':' + e.lineno, 'err'));
+window.addEventListener('unhandledrejection', e => addLine('PROMISE: ' + e.reason, 'err'));
 
-// Test archive
+addLine('Page loaded.');
+addLine('Platform: ' + navigator.userAgent.substring(0, 100));
+
 fetch('knights-of-eldoria-.apk', {method:'HEAD'})
-  .then(r => log('Archive reachable: HTTP ' + r.status + ' (' + r.headers.get('content-length') + ' bytes)', r.ok ? 'ok' : 'err'))
-  .catch(e => log('Archive UNREACHABLE: ' + e.message, 'err'));
+  .then(r => addLine('Archive: HTTP ' + r.status + ' (' + r.headers.get('content-length') + ' bytes)', r.ok?'ok':'err'))
+  .catch(e => addLine('Archive FAIL: ' + e, 'err'));
 
-log('Loading pythons.js from CDN…');
+fetch('https://pygame-web.github.io/cdn/0.9.3/pythons.js', {method:'HEAD'})
+  .then(r => addLine('CDN: HTTP ' + r.status, r.ok?'ok':'err'))
+  .catch(e => addLine('CDN FAIL: ' + e, 'err'));
 
-// Hide log once canvas draws something (pygbag started)
-let _hideTimer = null;
-const _obs = new MutationObserver(() => {
-  const cv = document.querySelector('canvas');
-  if (cv && cv.width > 0) {
-    log('Canvas active! Hiding debug log…', 'ok');
-    setTimeout(() => document.getElementById('log').style.display = 'none', 2000);
-    _obs.disconnect();
-  }
-});
-_obs.observe(document.body, {childList:true, subtree:true, attributes:true});
+addLine('Loading pygbag runtime...');
 
-if ('serviceWorker' in navigator)
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 
+<!-- Static pygbag script tag — config is read from inline text -->
 <script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type="module" defer>
 {"autorun": true, "workers": false, "archive": "knights-of-eldoria-.apk"}
 </script>
