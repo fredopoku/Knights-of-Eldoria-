@@ -1,6 +1,6 @@
 // Knights of Eldoria — Service Worker
 // Caches the game for offline play after first load.
-const CACHE = "eldoria-v2";
+const CACHE = "eldoria-v4";
 
 const ASSETS = [
   "./index.html",
