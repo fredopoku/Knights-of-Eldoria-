@@ -271,7 +271,8 @@ class GameRenderer:
 
         # ── Map ──
         surface.fill(C_BG, self.map_rect)
-        surface.set_clip(self.map_rect)
+        # No set_clip — Metal clears the surface when clip is set on a hw surface.
+        # Entity methods already do bounds-check against map_rect themselves.
         if self._tile_surf:
             surface.blit(self._tile_surf, self.map_rect.topleft,
                          area=pygame.Rect(self.cam_x, self.cam_y,
@@ -280,8 +281,6 @@ class GameRenderer:
 
         # Vignette overlay on map
         self._draw_vignette(surface)
-
-        surface.set_clip(None)
 
         # ── HUD ──
         self._draw_hud(surface)

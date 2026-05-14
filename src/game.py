@@ -13,9 +13,8 @@ class Game:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption(WINDOW_TITLE)
-        # Fixed size — avoids VIDEORESIZE/Retina stale-surface issues on macOS
         self.screen  = pygame.display.set_mode(
-            (WINDOW_WIDTH, WINDOW_HEIGHT)
+            (WINDOW_WIDTH, WINDOW_HEIGHT),
         )
         self.clock   = pygame.time.Clock()
         self.running = True
@@ -110,6 +109,8 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.running = False
                     break
+                elif event.type in (pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT):
+                    pass  # let the redraw at end of loop handle it
                 elif not self._error and self._current:
                     try:
                         self._current.handle_event(event)
@@ -117,7 +118,10 @@ class Game:
                         pass   # non-fatal; don't blank the screen
 
             if self._error:
-                self._draw_error(surface)
+                try:
+                    self._draw_error(surface)
+                except Exception:
+                    surface.fill((20, 0, 0))   # last-resort red fill
                 keys = pygame.key.get_pressed()
                 if keys[pygame.K_ESCAPE]:
                     self._error   = None
@@ -135,9 +139,11 @@ class Game:
                 except Exception:
                     self._error = traceback.format_exc()
             else:
-                # Safety fallback — should never reach here, but prevents black
                 surface.fill(C_BG)
 
+            # pump() lets macOS Cocoa process its own events so the Metal
+            # swap chain doesn't expire between our draw and the present.
+            pygame.event.pump()
             pygame.display.flip()
 
         pygame.quit()
