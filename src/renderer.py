@@ -858,7 +858,7 @@ class FadeTransition:
             self._t = 1.0; self._done = True; self._mode = "none"
 
     def draw(self, surface):
-        if self._mode == "none" and not self._done:
+        if self._mode == "none":
             return
         alpha = int(255 * (1.0 - self._t) if self._mode == "in" else 255 * self._t)
         if alpha <= 0:
