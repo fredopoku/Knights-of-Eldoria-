@@ -12,7 +12,9 @@ from src.constants import WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, FPS, C_BG
 
 class Game:
     def __init__(self):
-        pygame.init()
+        # pygbag's WASM runtime pre-initializes SDL2/pygame; init() may not exist
+        if hasattr(pygame, 'init'):
+            pygame.init()
         pygame.display.set_caption(WINDOW_TITLE)
         self.screen  = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.clock   = pygame.time.Clock()

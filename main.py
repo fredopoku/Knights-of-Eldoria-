@@ -17,6 +17,7 @@ os.environ.setdefault('PYGAME_HIDE_SUPPORT_PROMPT', '1')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import pygame  # top-level: ensures WASM extension is loaded before async context
 
 async def main():
     from src.game import Game
