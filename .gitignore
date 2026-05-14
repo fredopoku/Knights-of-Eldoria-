@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+data/saves/
+data/settings.json
+data/achievements.json
+*.egg-info/
+dist/
+build/
+.env
