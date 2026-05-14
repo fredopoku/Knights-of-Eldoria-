@@ -7,7 +7,7 @@ WINDOW_WIDTH  = 1280
 WINDOW_HEIGHT = 720
 WINDOW_TITLE  = "Knights of Eldoria"
 FPS           = 60
-VERSION       = "1.0.0"
+VERSION       = "2.0.0"
 
 # ---------------------------------------------------------------------------
 # Game Modes
@@ -63,80 +63,99 @@ BOB_AMOUNT  = 2
 PULSE_SPEED = 3.0
 
 # ---------------------------------------------------------------------------
-# COLOR PALETTE — Dark Fantasy "Glowing World"
+# Weather constants
+# ---------------------------------------------------------------------------
+WEATHER_NONE  = "none"
+WEATHER_RAIN  = "rain"
+WEATHER_STORM = "storm"
+
+# ---------------------------------------------------------------------------
+# COLOR PALETTE — Dark Fantasy "Glowing World" (Vivid Remaster)
 # ---------------------------------------------------------------------------
 
-# Void background
-C_BG = (8, 10, 22)
+# Void background — deep space black
+C_BG = (6, 8, 18)
 
-# Map tiles — dark, atmospheric
-C_TILE_GRASS   = (32,  65,  26)
-C_TILE_GRASS_2 = (26,  54,  20)
-C_TILE_FOREST  = (18,  42,  18)
-C_TILE_DIRT    = (88,  64,  40)
-C_TILE_PATH    = (108, 85,  54)
-C_GRID         = (38,  72,  32)
+# Map tiles — dark atmospheric with richer hues
+C_TILE_GRASS   = (28,  72,  22)
+C_TILE_GRASS_2 = (22,  58,  16)
+C_TILE_FOREST  = (14,  46,  14)
+C_TILE_DIRT    = (92,  68,  42)
+C_TILE_PATH    = (112, 88,  56)
+C_GRID         = (34,  76,  28)
 
 # Entities — vivid, glowing
-C_HUNTER_NAV  = ( 55, 165, 255)   # Electric blue
-C_HUNTER_END  = ( 65, 235, 115)   # Vivid green
-C_HUNTER_STH  = (205, 105, 255)   # Bright purple
-C_HUNTER_HERO = (255, 220,  55)   # Hero gold
+C_HUNTER_NAV  = ( 50, 175, 255)   # Electric blue
+C_HUNTER_END  = ( 60, 240, 110)   # Vivid green
+C_HUNTER_STH  = (210, 100, 255)   # Bright purple
+C_HUNTER_HERO = (255, 225,  50)   # Hero gold
 
 C_KNIGHT        = (235,  48,  48)
 C_KNIGHT_DARK   = (145,  22,  22)
 C_KNIGHT_PURSUE = (255, 105,  30)
 
-C_TREASURE_BRONZE = (225, 122,  52)
-C_TREASURE_SILVER = (205, 218, 238)
-C_TREASURE_GOLD   = (255, 212,  32)
+# Boss knight — bigger, redder, more threatening
+C_BOSS_KNIGHT      = (220,  50,  50)
+C_BOSS_KNIGHT_DARK = (140,  20,  20)
 
-C_HIDEOUT       = (162, 115,  58)
-C_HIDEOUT_DARK  = (102,  70,  32)
-C_GARRISON      = (132,  54,  54)
-C_GARRISON_DARK = ( 78,  30,  30)
+C_TREASURE_BRONZE = (230, 125,  52)
+C_TREASURE_SILVER = (210, 222, 242)
+C_TREASURE_GOLD   = (255, 215,  32)
 
-# UI — dark purple glass with gold trim
-C_UI_BG          = (12,  10,  24)
-C_UI_PANEL       = (18,  15,  32)
-C_UI_PANEL_2     = (26,  22,  44)
-C_UI_BORDER      = (182, 140,  50)
-C_UI_BORDER_HI   = (235, 190,  72)
-C_UI_TEXT        = (235, 215, 168)
-C_UI_TEXT_DIM    = (155, 135, 102)
-C_UI_TEXT_BRIGHT = (255, 248, 205)
-C_UI_ACCENT      = (218, 165,  52)
+C_HIDEOUT       = (165, 118,  60)
+C_HIDEOUT_DARK  = (105,  72,  34)
+C_GARRISON      = (135,  55,  55)
+C_GARRISON_DARK = ( 80,  32,  32)
 
-C_BTN_NORMAL = ( 28,  22,  50)
-C_BTN_HOVER  = ( 52,  42,  88)
-C_BTN_ACTIVE = ( 78,  62, 118)
-C_BTN_BORDER = (182, 140,  50)
-C_BTN_TEXT   = (235, 215, 168)
+# UI — dark purple glass with gold trim (redesigned)
+C_UI_BG          = (6,   8,  18)
+C_UI_PANEL       = (18,  14,  36)
+C_UI_PANEL_2     = (26,  22,  48)
+C_UI_BORDER      = (60,  45, 100)
+C_UI_BORDER_HI   = (120, 90, 200)
+C_UI_TEXT        = (255, 248, 210)   # warm cream
+C_UI_TEXT_DIM    = (160, 145, 130)   # muted warm
+C_UI_TEXT_BRIGHT = (255, 248, 210)   # warm cream bright
+C_UI_ACCENT      = (190, 140, 255)   # violet
+
+C_BTN_NORMAL = ( 22,  16,  44)
+C_BTN_HOVER  = ( 48,  36,  90)
+C_BTN_ACTIVE = ( 72,  56, 128)
+C_BTN_BORDER = (60,   45, 100)
+C_BTN_TEXT   = (255, 248, 210)
 
 # Status
-C_GREEN  = ( 72, 220,  92)
-C_RED    = (228,  58,  58)
-C_YELLOW = (252, 222,  48)
-C_BLUE   = ( 62, 148, 238)
-C_ORANGE = (248, 152,  34)
+C_GREEN  = ( 80, 220, 120)
+C_RED    = (240,  60,  60)
+C_YELLOW = (255, 215,  50)
+C_BLUE   = ( 60, 150, 245)
+C_ORANGE = (255, 140,  30)
 C_WHITE  = (255, 255, 255)
 C_BLACK  = (  0,   0,   0)
 
 # Bars
-C_BAR_STAMINA_HI  = ( 72, 220,  92)
-C_BAR_STAMINA_MID = (248, 208,  46)
-C_BAR_STAMINA_LOW = (228,  58,  58)
-C_BAR_ENERGY      = ( 62, 148, 238)
-C_BAR_BG          = ( 24,  20,  44)
-C_BAR_BORDER      = (102,  80,  34)
+C_BAR_STAMINA_HI  = ( 80, 220, 120)
+C_BAR_STAMINA_MID = (255, 210,  48)
+C_BAR_STAMINA_LOW = (240,  60,  60)
+C_BAR_ENERGY      = ( 60, 150, 245)
+C_BAR_BG          = ( 22,  18,  48)
+C_BAR_BORDER      = ( 60,  45, 100)
 
 # Particles
-C_SPARK_BRONZE = (222, 132,  56)
-C_SPARK_SILVER = (212, 222, 242)
-C_SPARK_GOLD   = (255, 218,  56)
-C_DUST         = (142, 128,  88)
-C_CLASH        = (255,  92,  46)
-C_STAR         = (255, 252, 112)
+C_SPARK_BRONZE = (225, 135,  58)
+C_SPARK_SILVER = (215, 225, 245)
+C_SPARK_GOLD   = (255, 220,  58)
+C_DUST         = (145, 130,  90)
+C_CLASH        = (255,  90,  44)
+C_STAR         = (255, 252, 115)
+
+# Weather / Environment
+C_WEATHER_RAIN = (120, 160, 220)   # rain drop colour
+C_DAY_TINT     = (255, 240, 200)   # warm daytime overlay
+C_NIGHT_TINT   = ( 40,  60, 120)   # cool night overlay
+
+# Combo
+C_COMBO = (255, 200,   0)          # combo multiplier text
 
 # ---------------------------------------------------------------------------
 # Paths

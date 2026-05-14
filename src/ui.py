@@ -1,4 +1,4 @@
-"""Reusable UI widgets — polished, animated, commercial quality."""
+"""Reusable UI widgets — polished dark-fantasy style, animated."""
 from __future__ import annotations
 import math
 import pygame
@@ -16,6 +16,7 @@ from src.constants import (
 # ---------------------------------------------------------------------------
 _font_cache: dict[tuple, pygame.font.Font] = {}
 
+
 def get_font(size: int, bold: bool = False) -> pygame.font.Font:
     key = (size, bold)
     if key not in _font_cache:
@@ -32,7 +33,7 @@ def get_font(size: int, bold: bool = False) -> pygame.font.Font:
 
 
 # ---------------------------------------------------------------------------
-# draw_text
+# draw_text  — with optional drop shadow and alpha
 # ---------------------------------------------------------------------------
 def draw_text(surface, text, x, y, size=20, color=C_UI_TEXT,
               bold=False, align="left", shadow=False, alpha=255):
@@ -57,19 +58,30 @@ def draw_text(surface, text, x, y, size=20, color=C_UI_TEXT,
     return rect
 
 
+# ---------------------------------------------------------------------------
+# draw_panel  — rich dark panel with top highlight strip
+# ---------------------------------------------------------------------------
 def draw_panel(surface, rect, color=C_UI_PANEL, border_color=C_UI_BORDER,
-               border_width=2, radius=6):
-    pygame.draw.rect(surface, color, rect, border_radius=radius)
-    pygame.draw.rect(surface, border_color, rect,
-                     width=border_width, border_radius=radius)
-
-
-def draw_hline(surface, x1, x2, y, color=C_UI_BORDER, width=1):
-    pygame.draw.line(surface, color, (x1, y), (x2, y), width)
+               border_width=2, radius=8, corner_radius=None):
+    r = corner_radius if corner_radius is not None else radius
+    pygame.draw.rect(surface, color, rect, border_radius=r)
+    # Subtle inner top-edge highlight for depth
+    hi_rect = pygame.Rect(rect.x + 2, rect.y + 2, rect.width - 4, 2)
+    hi_col  = tuple(min(255, int(v * 1.6)) for v in color)
+    pygame.draw.rect(surface, hi_col, hi_rect, border_radius=r)
+    pygame.draw.rect(surface, border_color, rect, width=border_width, border_radius=r)
 
 
 # ---------------------------------------------------------------------------
-# Button — animated hover glow
+# draw_hline — decorative divider with optional gem accent
+# ---------------------------------------------------------------------------
+def draw_hline(surface, x1, x2, y, color=None, width=1):
+    c = color if color is not None else C_UI_BORDER
+    pygame.draw.line(surface, c, (x1, y), (x2, y), width)
+
+
+# ---------------------------------------------------------------------------
+# Button — dark fantasy button with hover glow + press animation
 # ---------------------------------------------------------------------------
 class Button:
     HEIGHT = 46
@@ -114,32 +126,34 @@ class Button:
         self._anim += (target - self._anim) * min(1.0, dt * 14)
 
     def draw(self, surface):
-        t  = self._anim
-        def lerp(a, b, t): return tuple(int(a[i]+(b[i]-a[i])*t) for i in range(3))
+        t = self._anim
+
+        def lerp(a, b, t):
+            return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
         bg = lerp(self.c_normal, self.c_active if self._pressed else self.c_hover, t)
         bc = lerp(self.c_border, C_UI_BORDER_HI, t)
 
-        pygame.draw.rect(surface, bg, self.rect, border_radius=6)
+        pygame.draw.rect(surface, bg, self.rect, border_radius=8)
 
-        # Inner highlight strip (top edge)
-        hi_strip = pygame.Rect(self.rect.x+3, self.rect.y+2,
-                               self.rect.width-6, 2)
-        hi_col = lerp((40, 32, 68), (100, 80, 160), t)
+        # Inner highlight strip at top edge
+        hi_strip = pygame.Rect(self.rect.x + 3, self.rect.y + 2,
+                               self.rect.width - 6, 2)
+        hi_col = lerp((36, 26, 62), (100, 76, 170), t)
         pygame.draw.rect(surface, hi_col, hi_strip, border_radius=2)
 
-        pygame.draw.rect(surface, bc, self.rect, width=2, border_radius=6)
+        pygame.draw.rect(surface, bc, self.rect, width=2, border_radius=8)
 
-        # Glow behind border on hover
+        # Outer glow on hover
         if t > 0.05:
-            glow_r = self.rect.inflate(4, 4)
+            glow_r = self.rect.inflate(6, 6)
             glow_s = pygame.Surface((glow_r.width, glow_r.height), pygame.SRCALPHA)
-            ga = int(50 * t)
+            ga     = int(60 * t)
             pygame.draw.rect(glow_s, (*C_UI_BORDER_HI, ga),
-                             glow_s.get_rect(), border_radius=8)
+                             glow_s.get_rect(), border_radius=10)
             surface.blit(glow_s, glow_r.topleft)
 
-        tc = self.c_text if self.enabled else C_UI_TEXT_DIM
+        tc   = self.c_text if self.enabled else C_UI_TEXT_DIM
         font = get_font(self.font_size, bold=True)
         ts   = font.render(self.label, True, tc)
         tr   = ts.get_rect(center=self.rect.center)
@@ -181,12 +195,12 @@ class ProgressBar:
             c = self.c_high if f > 0.6 else self.c_mid if f > 0.3 else self.c_low
             pygame.draw.rect(surface, c, fill, border_radius=2)
             # Shine
-            shine = pygame.Rect(fill.x+1, fill.y+1, max(1, fill.width-2), 2)
-            shine_c = tuple(min(255, int(v*1.4)) for v in c)
+            shine   = pygame.Rect(fill.x + 1, fill.y + 1, max(1, fill.width - 2), 2)
+            shine_c = tuple(min(255, int(v * 1.4)) for v in c)
             pygame.draw.rect(surface, shine_c, shine, border_radius=1)
         if self.show_text:
             draw_text(surface, f"{int(self.value)}/{int(self.max_value)}",
-                      self.rect.centerx, self.rect.top+1,
+                      self.rect.centerx, self.rect.top + 1,
                       size=12, color=C_WHITE, align="center")
 
 
@@ -216,27 +230,29 @@ class Slider:
     def _update(self, mx):
         x0 = self.rect.left + self.THUMB_R
         x1 = self.rect.right - self.THUMB_R
-        self.value = max(0.0, min(1.0, (mx - x0) / max(1, x1-x0)))
+        self.value = max(0.0, min(1.0, (mx - x0) / max(1, x1 - x0)))
         if self.callback:
             self.callback(self.value)
 
     def draw(self, surface):
-        track = pygame.Rect(self.rect.left, self.rect.centery-3, self.rect.width, 6)
+        track = pygame.Rect(self.rect.left, self.rect.centery - 3,
+                            self.rect.width, 6)
         pygame.draw.rect(surface, C_BAR_BG,     track, border_radius=3)
         pygame.draw.rect(surface, C_BAR_BORDER, track, width=1, border_radius=3)
         x0 = self.rect.left + self.THUMB_R
         x1 = self.rect.right - self.THUMB_R
-        fx = int(x0 + (x1-x0) * self.value)
+        fx = int(x0 + (x1 - x0) * self.value)
         if fx > x0:
-            fill = pygame.Rect(x0, track.top, fx-x0, track.height)
+            fill = pygame.Rect(x0, track.top, fx - x0, track.height)
             pygame.draw.rect(surface, C_BAR_ENERGY, fill, border_radius=3)
         pygame.draw.circle(surface, C_UI_BORDER_HI, (fx, self.rect.centery), self.THUMB_R)
-        pygame.draw.circle(surface, C_WHITE,        (fx, self.rect.centery), self.THUMB_R-4)
+        pygame.draw.circle(surface, C_WHITE,        (fx, self.rect.centery), self.THUMB_R - 4)
         if self.label:
-            draw_text(surface, self.label, self.rect.left, self.rect.top-22,
+            draw_text(surface, self.label, self.rect.left, self.rect.top - 22,
                       size=16, color=C_UI_TEXT)
-        draw_text(surface, f"{int(self.value*100)}%",
-                  self.rect.right+12, self.rect.centery-9, size=14, color=C_UI_TEXT_DIM)
+        draw_text(surface, f"{int(self.value * 100)}%",
+                  self.rect.right + 12, self.rect.centery - 9,
+                  size=14, color=C_UI_TEXT_DIM)
 
 
 # ---------------------------------------------------------------------------
@@ -260,26 +276,25 @@ class ScrollText:
     def handle_event(self, event):
         if event.type == pygame.MOUSEWHEEL:
             if self.rect.collidepoint(pygame.mouse.get_pos()):
-                self._scroll = max(0, min(len(self._lines)-1,
+                self._scroll = max(0, min(len(self._lines) - 1,
                                          self._scroll - event.y))
 
     def draw(self, surface):
         draw_panel(surface, self.rect, C_UI_PANEL_2, C_UI_BORDER)
-        clip = surface.get_clip()
-        surface.set_clip(self.rect.inflate(-4, -4))
         visible = self.rect.height // self._line_h
         start   = max(0, len(self._lines) - visible - self._scroll)
         end     = start + visible
         y = self.rect.top + 4
         for text, color in self._lines[start:end]:
-            draw_text(surface, text, self.rect.left+6, y,
-                      size=self.font_size, color=color)
+            # Manual clip check instead of set_clip (no Metal surface clipping issues)
+            if self.rect.top <= y <= self.rect.bottom - self._line_h:
+                draw_text(surface, text, self.rect.left + 6, y,
+                          size=self.font_size, color=color)
             y += self._line_h
-        surface.set_clip(clip)
 
 
 # ---------------------------------------------------------------------------
-# Panel
+# Panel — titled panel widget
 # ---------------------------------------------------------------------------
 class Panel:
     def __init__(self, rect, title="", color=C_UI_PANEL, border_color=C_UI_BORDER):
@@ -292,11 +307,11 @@ class Panel:
         draw_panel(surface, self.rect, self.color, self.border)
         if self.title:
             draw_text(surface, self.title,
-                      self.rect.centerx, self.rect.top+8,
+                      self.rect.centerx, self.rect.top + 8,
                       size=18, color=C_UI_TEXT_BRIGHT, bold=True,
                       align="center", shadow=True)
-            draw_hline(surface, self.rect.left+8, self.rect.right-8,
-                       self.rect.top+30, C_UI_BORDER)
+            draw_hline(surface, self.rect.left + 8, self.rect.right - 8,
+                       self.rect.top + 30, C_UI_BORDER)
 
 
 # ---------------------------------------------------------------------------
@@ -304,10 +319,10 @@ class Panel:
 # ---------------------------------------------------------------------------
 class Tooltip:
     def __init__(self, text, font_size=14):
-        self.text      = text
+        self.text     = text
         self.font_size = font_size
-        self._visible  = False
-        self._pos      = (0, 0)
+        self._visible = False
+        self._pos     = (0, 0)
 
     def show(self, pos): self._visible = True;  self._pos = pos
     def hide(self):      self._visible = False
@@ -319,12 +334,12 @@ class Tooltip:
         ts   = font.render(self.text, True, C_UI_TEXT_BRIGHT)
         pad  = 6
         rect = ts.get_rect()
-        rect.inflate_ip(pad*2, pad*2)
-        rect.topleft = (self._pos[0]+14, self._pos[1]+14)
-        rect.right   = min(rect.right,  surface.get_width()-4)
-        rect.bottom  = min(rect.bottom, surface.get_height()-4)
+        rect.inflate_ip(pad * 2, pad * 2)
+        rect.topleft = (self._pos[0] + 14, self._pos[1] + 14)
+        rect.right   = min(rect.right,  surface.get_width() - 4)
+        rect.bottom  = min(rect.bottom, surface.get_height() - 4)
         draw_panel(surface, rect, (20, 14, 8), C_UI_BORDER_HI)
-        surface.blit(ts, (rect.left+pad, rect.top+pad))
+        surface.blit(ts, (rect.left + pad, rect.top + pad))
 
 
 # ---------------------------------------------------------------------------
@@ -334,12 +349,12 @@ class MessageBox:
     def __init__(self, title, message, buttons, callback=None,
                  width=420, height=210):
         sw, sh = pygame.display.get_surface().get_size()
-        self.rect     = pygame.Rect((sw-width)//2, (sh-height)//2, width, height)
+        self.rect     = pygame.Rect((sw - width) // 2, (sh - height) // 2, width, height)
         self.title    = title
         self.message  = message
         self.callback = callback
         self._buttons = []
-        bw = (width - 40 - (len(buttons)-1)*12) // len(buttons)
+        bw = (width - 40 - (len(buttons) - 1) * 12) // len(buttons)
         bx = self.rect.left + 20
         by = self.rect.bottom - 54
         for i, lbl in enumerate(buttons):
@@ -365,15 +380,15 @@ class MessageBox:
         ov.fill((0, 0, 0, 150))
         surface.blit(ov, (0, 0))
         draw_panel(surface, self.rect, C_UI_PANEL, C_UI_BORDER_HI, border_width=2)
-        draw_text(surface, self.title, self.rect.centerx, self.rect.top+12,
+        draw_text(surface, self.title, self.rect.centerx, self.rect.top + 12,
                   size=22, color=C_UI_TEXT_BRIGHT, bold=True, align="center")
-        draw_hline(surface, self.rect.left+8, self.rect.right-8, self.rect.top+40)
-        font = get_font(16)
+        draw_hline(surface, self.rect.left + 8, self.rect.right - 8, self.rect.top + 40)
+        font  = get_font(16)
         words = self.message.split()
         line, lines = "", []
         for w in words:
-            test = (line+" "+w).strip()
-            if font.size(test)[0] > self.rect.width-30:
+            test = (line + " " + w).strip()
+            if font.size(test)[0] > self.rect.width - 30:
                 lines.append(line); line = w
             else:
                 line = test

@@ -1,5 +1,6 @@
 """
 Main Game class — state machine and 60 fps loop.
+Uses software rendering (SDL_RENDER_DRIVER=software set in main.py).
 Errors are always shown on-screen so black screens are impossible.
 """
 from __future__ import annotations
@@ -13,9 +14,10 @@ class Game:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption(WINDOW_TITLE)
-        self.screen  = pygame.display.set_mode(
-            (WINDOW_WIDTH, WINDOW_HEIGHT),
-        )
+
+        # Simple display mode — software rendering handles macOS Metal issues
+        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
         self.clock   = pygame.time.Clock()
         self.running = True
         self._error: str | None = None
@@ -99,8 +101,7 @@ class Game:
             dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
 
             # Always draw to whatever surface SDL currently considers active.
-            # On macOS a VIDEORESIZE / Retina re-init can replace the surface;
-            # get_surface() is always correct regardless.
+            # get_surface() is always correct regardless of platform events.
             surface = pygame.display.get_surface()
 
             self._apply_transition()
@@ -141,8 +142,7 @@ class Game:
             else:
                 surface.fill(C_BG)
 
-            # pump() lets macOS Cocoa process its own events so the Metal
-            # swap chain doesn't expire between our draw and the present.
+            # pump() lets macOS Cocoa process its own events before flip
             pygame.event.pump()
             pygame.display.flip()
 
