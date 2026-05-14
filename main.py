@@ -8,11 +8,12 @@ import os
 import sys
 import asyncio
 
-# Force SDL software rendering on desktop macOS (ignored by Pygbag on web).
-os.environ['SDL_RENDER_DRIVER'] = 'software'
-os.environ.setdefault('SDL_VIDEO_MAC_FULLSCREEN_SPACES', '0')
-os.environ.setdefault('SDL_RENDER_VSYNC',                '0')
-os.environ.setdefault('PYGAME_HIDE_SUPPORT_PROMPT',      '1')
+# Software rendering fixes macOS Metal black screen — skip on web (WebGL only).
+if sys.platform not in ('emscripten', 'wasi'):
+    os.environ['SDL_RENDER_DRIVER'] = 'software'
+    os.environ.setdefault('SDL_VIDEO_MAC_FULLSCREEN_SPACES', '0')
+    os.environ.setdefault('SDL_RENDER_VSYNC',                '0')
+os.environ.setdefault('PYGAME_HIDE_SUPPORT_PROMPT', '1')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
