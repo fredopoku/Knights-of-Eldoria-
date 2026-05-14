@@ -35,7 +35,7 @@ DIFFICULTY_SETTINGS = {
 # Map / Grid
 # ---------------------------------------------------------------------------
 GRID_SIZE   = 30
-TILE_SIZE   = 28        # pixels per grid cell in play view
+TILE_SIZE   = 28        # pixels per grid cell (approximate; renderer recalculates)
 
 # ---------------------------------------------------------------------------
 # Simulation physics
@@ -64,77 +64,78 @@ BOB_AMOUNT   = 2            # pixels
 PULSE_SPEED  = 3.0          # radians/sec for treasure glow
 
 # ---------------------------------------------------------------------------
-# Color Palette  (RGB)
+# Color Palette  (RGB)  — commercial-quality medieval
 # ---------------------------------------------------------------------------
 
 # -- Map tiles --
-C_BG             = (6,  14,  6)
-C_TILE_GRASS     = (22, 54, 22)
-C_TILE_GRASS_2   = (18, 48, 18)
-C_TILE_FOREST    = (14, 38, 14)
-C_TILE_DIRT      = (72, 54, 34)
-C_TILE_PATH      = (90, 70, 44)
-C_GRID           = (28, 58, 28)
+C_BG             = (18,  38,  18)   # Rich dark forest background
+C_TILE_GRASS     = (55, 118,  45)   # Vibrant meadow green
+C_TILE_GRASS_2   = (48, 102,  38)   # Slightly darker variant
+C_TILE_FOREST    = (28,  72,  28)   # Deep forest green
+C_TILE_DIRT      = (140, 100,  58)  # Rich earth brown
+C_TILE_PATH      = (168, 132,  78)  # Warm stone path
+C_GRID           = (38,  80,  34)   # Subtle grid lines
 
 # -- Entities --
-C_HUNTER_NAV   = (80,  170, 255)   # Navigation  – bright blue
-C_HUNTER_END   = (80,  210, 120)   # Endurance   – green
+C_HUNTER_NAV   = ( 80, 170, 255)   # Navigation  – bright blue
+C_HUNTER_END   = ( 80, 210, 120)   # Endurance   – green
 C_HUNTER_STH   = (190, 120, 220)   # Stealth     – purple
-C_HUNTER_HERO  = (255, 210,  60)   # Player hero – gold
+C_HUNTER_HERO  = (255, 215,  60)   # Player hero – gold
 
-C_KNIGHT       = (210,  40,  40)
-C_KNIGHT_DARK  = (140,  20,  20)
-C_KNIGHT_PURSUE= (255,  80,  40)   # Brighter when chasing
+C_KNIGHT       = (215,  45,  45)
+C_KNIGHT_DARK  = (145,  22,  22)
+C_KNIGHT_PURSUE= (255,  85,  40)   # Brighter when chasing
 
-C_TREASURE_BRONZE = (180, 100,  40)
-C_TREASURE_SILVER = (180, 190, 200)
-C_TREASURE_GOLD   = (240, 190,  30)
+C_TREASURE_BRONZE = (200, 110,  45)
+C_TREASURE_SILVER = (185, 198, 210)
+C_TREASURE_GOLD   = (248, 200,  35)
 
-C_HIDEOUT      = (130,  90,  45)
-C_HIDEOUT_DARK = ( 90,  60,  25)
-C_GARRISON     = (100,  45,  45)
-C_GARRISON_DARK= ( 65,  25,  25)
+C_HIDEOUT      = (148, 105,  52)
+C_HIDEOUT_DARK = (100,  68,  30)
+C_GARRISON     = (115,  52,  52)
+C_GARRISON_DARK= ( 72,  28,  28)
 
-# -- UI Chrome --
-C_UI_BG          = (12,   8,   4)
-C_UI_PANEL       = (22,  16,   8)
-C_UI_PANEL_2     = (30,  22,  12)
-C_UI_BORDER      = (150, 110,  35)
-C_UI_BORDER_HI   = (215, 165,  55)
-C_UI_TEXT        = (220, 200, 150)
-C_UI_TEXT_DIM    = (140, 120,  85)
-C_UI_TEXT_BRIGHT = (255, 240, 185)
-C_UI_ACCENT      = (200, 150,  40)
+# -- UI Chrome — rich dark medieval gold --
+C_UI_BG          = (14,   9,   4)
+C_UI_PANEL       = (24,  17,   8)
+C_UI_PANEL_2     = (34,  24,  12)
+C_UI_BORDER      = (175, 130,  42)
+C_UI_BORDER_HI   = (225, 178,  60)
+C_UI_TEXT        = (228, 208, 158)
+C_UI_TEXT_DIM    = (155, 133,  92)
+C_UI_TEXT_BRIGHT = (255, 245, 195)
+C_UI_ACCENT      = (210, 158,  45)
 
-C_BTN_NORMAL = ( 38,  26,  12)
-C_BTN_HOVER  = ( 58,  40,  18)
-C_BTN_ACTIVE = ( 80,  56,  22)
-C_BTN_BORDER = (155, 115,  38)
-C_BTN_TEXT   = (220, 200, 150)
+C_BTN_NORMAL = ( 42,  29,  13)
+C_BTN_HOVER  = ( 65,  47,  20)
+C_BTN_ACTIVE = ( 92,  65,  25)
+C_BTN_BORDER = (175, 130,  42)
+C_BTN_TEXT   = (228, 208, 158)
 
 # -- Status colours --
-C_GREEN  = ( 60, 190,  80)
-C_RED    = (210,  55,  55)
-C_YELLOW = (240, 210,  40)
-C_BLUE   = ( 60, 130, 220)
+C_GREEN  = ( 65, 200,  85)
+C_RED    = (220,  58,  58)
+C_YELLOW = (245, 215,  45)
+C_BLUE   = ( 65, 138, 228)
 C_WHITE  = (255, 255, 255)
 C_BLACK  = (  0,   0,   0)
+C_ORANGE = (240, 145,  30)
 
 # -- HUD bars --
-C_BAR_STAMINA_HI  = ( 60, 200,  80)
-C_BAR_STAMINA_MID = (230, 190,  40)
-C_BAR_STAMINA_LOW = (210,  55,  55)
-C_BAR_ENERGY      = ( 60, 130, 220)
-C_BAR_BG          = ( 35,  25,  12)
-C_BAR_BORDER      = (100,  75,  30)
+C_BAR_STAMINA_HI  = ( 65, 205,  85)
+C_BAR_STAMINA_MID = (238, 195,  42)
+C_BAR_STAMINA_LOW = (218,  58,  58)
+C_BAR_ENERGY      = ( 65, 138, 228)
+C_BAR_BG          = ( 32,  22,  10)
+C_BAR_BORDER      = (108,  80,  32)
 
 # -- Particles --
-C_SPARK_BRONZE = (200, 120,  50)
-C_SPARK_SILVER = (200, 210, 220)
-C_SPARK_GOLD   = (255, 210,  50)
-C_DUST         = (140, 120,  80)
-C_CLASH        = (255,  80,  40)
-C_STAR         = (255, 240, 100)
+C_SPARK_BRONZE = (208, 125,  55)
+C_SPARK_SILVER = (205, 215, 228)
+C_SPARK_GOLD   = (255, 215,  55)
+C_DUST         = (148, 128,  85)
+C_CLASH        = (255,  85,  45)
+C_STAR         = (255, 245, 105)
 
 # ---------------------------------------------------------------------------
 # Paths

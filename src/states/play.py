@@ -296,11 +296,16 @@ class PlayState:
                 self._hero.hero_dy = dy
                 self._hero.update(self.sim)
                 self._cam_target_entity()
-                ts = self.renderer._tile_size if self.renderer else TILE_SIZE
-                mr = self.renderer.map_rect if self.renderer else pygame.Rect(0,0,WINDOW_WIDTH,WINDOW_HEIGHT)
-                sx = self._hero.position[0]*ts - int(self._cam_x) + mr.left
-                sy = self._hero.position[1]*ts - int(self._cam_y) + mr.top
-                self.particles.dust(sx + ts//2, sy + ts//2)
+                if self.renderer:
+                    tw = self.renderer._tile_w
+                    th = self.renderer._tile_h
+                    mr = self.renderer.map_rect
+                else:
+                    tw = th = TILE_SIZE
+                    mr = pygame.Rect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
+                sx = self._hero.position[0]*tw - int(self._cam_x) + mr.left
+                sy = self._hero.position[1]*th - int(self._cam_y) + mr.top
+                self.particles.dust(sx + tw//2, sy + th//2)
                 if self._hero.carried_treasure:
                     self._hero_collect = True
                 return   # don't fall through to other key bindings
@@ -324,13 +329,14 @@ class PlayState:
         """Click on a hunter to select, click elsewhere to move."""
         if not self.renderer:
             return
-        ts  = self.renderer._tile_size
+        tw  = self.renderer._tile_w
+        th  = self.renderer._tile_h
         mx, my = event.pos
         mr  = self.renderer.map_rect
         if not mr.collidepoint(mx, my):
             return
-        gx = (mx - mr.left + int(self._cam_x)) // ts
-        gy = (my - mr.top  + int(self._cam_y)) // ts
+        gx = (mx - mr.left + int(self._cam_x)) // max(1, tw)
+        gy = (my - mr.top  + int(self._cam_y)) // max(1, th)
         gx = max(0, min(self.sim.grid_size-1, gx))
         gy = max(0, min(self.sim.grid_size-1, gy))
         pos = (gx, gy)
@@ -366,15 +372,20 @@ class PlayState:
     def _process_sim_events(self):
         if not self.sim:
             return
-        ts = self.renderer._tile_size if self.renderer else TILE_SIZE
-        mr = self.renderer.map_rect if self.renderer else pygame.Rect(0,0,WINDOW_WIDTH,WINDOW_HEIGHT)
+        if self.renderer:
+            tw = self.renderer._tile_w
+            th = self.renderer._tile_h
+            mr = self.renderer.map_rect
+        else:
+            tw = th = TILE_SIZE
+            mr = pygame.Rect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
 
         for name, entity in self.sim.events:
             if entity is None:
                 continue
-            sx = entity.position[0]*ts - int(self._cam_x) + mr.left
-            sy = entity.position[1]*ts - int(self._cam_y) + mr.top
-            cx, cy = sx + ts//2, sy + ts//2
+            sx = entity.position[0]*tw - int(self._cam_x) + mr.left
+            sy = entity.position[1]*th - int(self._cam_y) + mr.top
+            cx, cy = sx + tw//2, sy + th//2
 
             if name == "collect_treasure" and isinstance(entity, Hunter):
                 ct = entity.carried_treasure
@@ -415,13 +426,14 @@ class PlayState:
     def _cam_target_entity(self):
         if not self.renderer or not self._hero:
             return
-        ts  = self.renderer._tile_size
+        tw  = self.renderer._tile_w
+        th  = self.renderer._tile_h
         mr  = self.renderer.map_rect
-        tx  = self._hero.position[0] * ts - mr.width  // 2
-        ty  = self._hero.position[1] * ts - mr.height // 2
         gs  = self.sim.grid_size if self.sim else GRID_SIZE
-        self._cam_x = max(0, min(tx, gs * ts - mr.width))
-        self._cam_y = max(0, min(ty, gs * ts - mr.height))
+        tx  = self._hero.position[0] * tw - mr.width  // 2
+        ty  = self._hero.position[1] * th - mr.height // 2
+        self._cam_x = max(0, min(tx, gs * tw - mr.width))
+        self._cam_y = max(0, min(ty, gs * th - mr.height))
 
     # ------------------------------------------------------------------
     # Update
@@ -498,11 +510,12 @@ class PlayState:
         if self.mode == MODE_COMMAND and self._selected_hunter:
             h = self._selected_hunter
             if h in self.sim.entities and self.renderer:
-                ts  = self.renderer._tile_size
+                tw  = self.renderer._tile_w
+                th  = self.renderer._tile_h
                 mr  = self.renderer.map_rect
-                sx  = h.position[0]*ts - int(self._cam_x) + mr.left
-                sy  = h.position[1]*ts - int(self._cam_y) + mr.top
-                r   = pygame.Rect(sx-2, sy-2, ts+4, ts+4)
+                sx  = h.position[0]*tw - int(self._cam_x) + mr.left
+                sy  = h.position[1]*th - int(self._cam_y) + mr.top
+                r   = pygame.Rect(sx-2, sy-2, tw+4, th+4)
                 pygame.draw.rect(surface, C_TREASURE_GOLD, r, width=2, border_radius=3)
 
         # Hero HUD extras
