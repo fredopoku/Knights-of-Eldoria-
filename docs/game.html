@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#12091e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Knights of Eldoria — Playing</title>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+
+    canvas#canvas {
+      display: block;
+      width: 100vw !important;
+      height: 100vh !important;
+      image-rendering: pixelated;
+    }
+
+    /* Loading overlay — shown while pygbag boots */
+    #boot {
+      position: fixed; inset: 0; z-index: 999;
+      background: #06060e;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #ddd0ff;
+      transition: opacity .6s ease;
+    }
+    #boot.fade-out { opacity: 0; pointer-events: none; }
+
+    .boot-title {
+      font-size: 2rem; font-weight: 800; letter-spacing: .05em;
+      background: linear-gradient(135deg, #ffd720, #c8960a, #9060e8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.5rem;
+    }
+    .bar-wrap {
+      width: 260px; height: 7px;
+      background: rgba(60,40,112,.4); border-radius: 4px; overflow: hidden;
+      margin-bottom: .8rem;
+    }
+    .bar {
+      height: 100%; width: 8%;
+      background: linear-gradient(90deg, #c8960a, #ffd720);
+      border-radius: 4px;
+      transition: width .4s ease;
+    }
+    .boot-msg { font-size: .85rem; color: #7060a0; }
+    .back-btn {
+      margin-top: 2rem; font-size: .8rem; color: #4a3870;
+      cursor: pointer; text-decoration: underline; background: none; border: none;
+    }
+    .back-btn:hover { color: #9060e8; }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="boot">
+  <div class="boot-title">⚔ Knights of Eldoria</div>
+  <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+  <div class="boot-msg" id="bmsg">Loading WebAssembly runtime…</div>
+  <button class="back-btn" onclick="history.back()">← Back to menu</button>
+</div>
+
+<!-- Pygbag renders into this canvas -->
+<canvas id="canvas"></canvas>
+
+<!-- Service worker -->
+<script>
+if ('serviceWorker' in navigator)
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+// Fake progress bar while WASM downloads
+(function () {
+  const bar  = document.getElementById('bar');
+  const msg  = document.getElementById('bmsg');
+  const boot = document.getElementById('boot');
+  const steps = [
+    [18,  'Loading WebAssembly runtime…'],
+    [38,  'Initialising Python…'],
+    [58,  'Unpacking game assets…'],
+    [75,  'Building the dungeon…'],
+    [90,  'Summoning the knights…'],
+    [100, 'Starting…'],
+  ];
+  let i = 0;
+  function tick() {
+    if (i >= steps.length) {
+      // Hide boot overlay once progress is done
+      setTimeout(() => boot.classList.add('fade-out'), 800);
+      setTimeout(() => boot.style.display = 'none', 1500);
+      return;
+    }
+    const [pct, text] = steps[i++];
+    bar.style.width = pct + '%';
+    msg.textContent = text;
+    setTimeout(tick, i === steps.length ? 800 : 1000);
+  }
+  tick();
+})();
+</script>
+
+<!--
+  Pygbag script MUST be a static tag (not dynamically injected).
+  The JSON inside is read by pygbag as configuration.
+-->
+<script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type="module" defer>
+{"autorun": true, "workers": false, "archive": "knights-of-eldoria-.tar.gz"}
+</script>
+
+</body>
+</html>

@@ -116,37 +116,11 @@
     .key-label { font-size:.8rem; color:var(--dim); }
     .footer    { font-size:.72rem; color:var(--dim); }
 
-    /* ── Loading overlay ────────────────────────────────────────────────── */
-    #loading {
-      display: none; position: fixed; inset: 0; background: #06060e;
-      flex-direction: column; align-items: center; justify-content: center; z-index: 200;
-    }
-    #loading.show { display: flex; }
-    .loader-title {
-      font-size: 1.6rem; font-weight: 800; margin-bottom: 1.2rem;
-      background: linear-gradient(135deg,var(--gold),var(--purple));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .loader-bar-wrap { width: 280px; height: 8px; background: rgba(60,40,112,.4);
-                       border-radius: 4px; overflow: hidden; margin-bottom: .75rem; }
-    .loader-bar { height: 100%; width: 0%; background: linear-gradient(90deg,var(--gold2),var(--gold));
-                  border-radius: 4px; transition: width .4s ease; }
-    .loader-msg { font-size: .85rem; color: var(--dim); }
   </style>
 </head>
 <body>
 
 <div class="stars" id="stars"></div>
-
-<!-- Loading screen -->
-<div id="loading">
-  <div class="loader-title">⚔ Knights of Eldoria</div>
-  <div class="loader-bar-wrap"><div class="loader-bar" id="loader-bar"></div></div>
-  <div class="loader-msg" id="loader-msg">Loading…</div>
-</div>
-
-<!-- Pygbag canvas (hidden until game starts) -->
-<canvas id="canvas"></canvas>
 
 <!-- Landing page -->
 <div id="landing">
@@ -220,65 +194,10 @@ if(isIOS&&!isStandalone) document.getElementById('ios-hint').classList.add('show
 if('serviceWorker' in navigator)
   navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
-// ── Launch game ───────────────────────────────────────────────────────────
-document.getElementById('btn-play').addEventListener('click',()=>{
-  document.getElementById('landing').style.display='none';
-  const load=document.getElementById('loading');
-  load.classList.add('show');
-
-  // Show canvas for pygbag
-  const cv=document.getElementById('canvas');
-  cv.style.display='block';
-  cv.style.position='fixed';
-  cv.style.inset='0';
-  cv.style.width='100%';
-  cv.style.height='100%';
-
-  // Progress animation while WASM loads
-  const bar=document.getElementById('loader-bar');
-  const msg=document.getElementById('loader-msg');
-  const steps=[
-    [15,'Loading WebAssembly…'],
-    [35,'Unpacking Python…'],
-    [58,'Loading game assets…'],
-    [78,'Initialising world…'],
-    [92,'Summoning knights…'],
-    [100,'Ready!'],
-  ];
-  let i=0;
-  function step(){
-    if(i>=steps.length){
-      // Hide loader; pygbag canvas is now visible
-      setTimeout(()=>load.classList.remove('show'),500);
-      return;
-    }
-    const[pct,text]=steps[i++];
-    bar.style.width=pct+'%'; msg.textContent=text;
-    setTimeout(step, pct===100 ? 700 : 900);
-  }
-  step();
-
-  // Boot pygbag
-  bootPygbag();
+// ── Launch game → navigate to dedicated game page ─────────────────────────
+document.getElementById('btn-play').addEventListener('click', () => {
+  window.location.href = 'game.html';
 });
-
-// ── Pygbag bootstrap ──────────────────────────────────────────────────────
-function bootPygbag(){
-  // pygbag reads window.canvas and window.Python to pick the canvas element
-  window.canvas = document.getElementById('canvas');
-
-  const s = document.createElement('script');
-  s.type  = 'module';
-  // The pygbag CDN runtime + our game archive
-  s.innerHTML = JSON.stringify({
-    autorun: true,
-    workers: false,
-    archive: 'knights-of-eldoria-.tar.gz',
-  });
-  s.src = 'https://pygame-web.github.io/cdn/0.9.3/pythons.js';
-  s.defer = true;
-  document.head.appendChild(s);
-}
 </script>
 
 </body>
