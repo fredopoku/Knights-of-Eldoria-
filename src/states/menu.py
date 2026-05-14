@@ -152,20 +152,22 @@ class MenuState:
         self._rune_angle = 0.0
 
         # ── Main buttons ──
-        bw, bh = 320, 54
+        qw, qh = 380, 66   # Quick Play — hero entry, bigger + gold
+        bw, bh = 310, 50
+        qx = WINDOW_WIDTH // 2 - qw // 2
         cx = WINDOW_WIDTH // 2 - bw // 2
         self._main_btns = [
-            Button(pygame.Rect(cx, 318, bw, bh), "PLAY GAME",
-                   callback=self._go_mode, font_size=24),
-            Button(pygame.Rect(cx, 384, bw, bh), "TUTORIAL",
+            Button(pygame.Rect(qx, 296, qw, qh), "QUICK PLAY",
+                   callback=self._quick_play, font_size=28),
+            Button(pygame.Rect(cx, 376, bw, bh), "CUSTOM GAME",
+                   callback=self._go_mode, font_size=22),
+            Button(pygame.Rect(cx, 436, bw, bh), "TUTORIAL",
                    callback=lambda: self.game.change_state("tutorial"), font_size=22),
-            Button(pygame.Rect(cx, 450, bw, bh), "ACHIEVEMENTS",
-                   callback=self._show_achievements, font_size=22),
-            Button(pygame.Rect(cx, 516, bw, bh), "SETTINGS",
+            Button(pygame.Rect(cx, 496, bw, bh), "SETTINGS",
                    callback=lambda: self.game.change_state("settings"), font_size=22),
-            Button(pygame.Rect(cx, 582, bw, bh), "CREDITS",
+            Button(pygame.Rect(cx, 556, bw, bh), "CREDITS",
                    callback=lambda: self.game.change_state("credits"), font_size=22),
-            Button(pygame.Rect(cx, 648, bw, bh), "QUIT",
+            Button(pygame.Rect(cx, 616, bw, bh), "QUIT",
                    callback=self._quit, font_size=20),
         ]
 
@@ -213,15 +215,12 @@ class MenuState:
         ))
 
     # ------------------------------------------------------------------
-    def _go_mode(self):  self._sub = "mode"
-    def _pick(self, m):  self._mode = m; self._sub = "difficulty"
-    def _set(self, s):   self._sub = s
-    def _launch(self, d): self.game.change_state("play", mode=self._mode, difficulty=d)
-    def _quit(self):      self.game.running = False
-
-    def _show_achievements(self):
-        # Show achievement count toast then stay on menu
-        pass   # placeholder — achievements screen can be a future state
+    def _go_mode(self):    self._sub = "mode"
+    def _quick_play(self): self._mode = MODE_HERO; self._sub = "difficulty"
+    def _pick(self, m):    self._mode = m; self._sub = "difficulty"
+    def _set(self, s):     self._sub = s
+    def _launch(self, d):  self.game.change_state("play", mode=self._mode, difficulty=d)
+    def _quit(self):       self.game.running = False
 
     def enter(self, **kw):
         self._sub   = "main"
@@ -333,9 +332,26 @@ class MenuState:
                   cx, 256, size=18,
                   color=(ta, ta, int(ta * 0.55)), align="center")
 
-        self._deco(surface, 302)
+        self._deco(surface, 290)
 
-        for b in self._main_btns:
+        # QUICK PLAY — gold glow halo
+        qb = self._main_btns[0]
+        qr = qb.rect
+        pulse = 0.5 + 0.5 * math.sin(t * 2.8)
+        for halo_r, halo_a in [(6, 35), (12, 18), (20, 8)]:
+            hs = pygame.Surface((qr.width + halo_r * 2, qr.height + halo_r * 2), pygame.SRCALPHA)
+            ha = int(halo_a * (0.7 + 0.3 * pulse))
+            pygame.draw.rect(hs, (255, 215, 50, ha), hs.get_rect(), border_radius=12 + halo_r)
+            surface.blit(hs, (qr.left - halo_r, qr.top - halo_r))
+        qb.draw(surface)
+
+        # "Hero Mode • WASD to move • Q/E/R abilities" hint below Quick Play
+        draw_text(surface, "Hero Mode  •  WASD to move  •  Q / E / R abilities",
+                  cx, qr.bottom + 6, size=13,
+                  color=(int(180 * pulse + 60), int(160 * pulse + 50), 40), align="center")
+
+        # Rest of buttons
+        for b in self._main_btns[1:]:
             b.draw(surface)
 
     # ------------------------------------------------------------------
@@ -346,9 +362,13 @@ class MenuState:
                   align="center", shadow=True)
         self._deco(surface, 214)
 
-        mode_icons = ["  Watch", "  Command", "  Hero"]
+        recommended_label = "  RECOMMENDED"
         for i, b in enumerate(self._mode_btns[:-1]):
             b.draw(surface)
+            if i == 2:   # Hero Mode — highlight it
+                draw_text(surface, recommended_label,
+                          b.rect.right - 4, b.rect.top + 10,
+                          size=11, color=C_TREASURE_GOLD, align="right", bold=True)
             if i < len(self._mode_descs):
                 draw_text(surface, self._mode_descs[i],
                           b.rect.centerx, b.rect.bottom - 22,

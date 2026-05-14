@@ -157,6 +157,11 @@ C_NIGHT_TINT   = ( 40,  60, 120)   # cool night overlay
 # Combo
 C_COMBO = (255, 200,   0)          # combo multiplier text
 
+# Ability colours
+C_ABILITY_DASH  = ( 80, 210, 255)  # electric cyan
+C_ABILITY_CLOAK = (180,  80, 255)  # deep violet
+C_ABILITY_RALLY = (255, 200,  40)  # hero gold
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
