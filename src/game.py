@@ -1,6 +1,7 @@
 """
 Main Game class — state machine and 60 fps loop.
-Errors are always shown on-screen so black screens are impossible.
+SDL_RENDER_DRIVER=software is set in main.py so all surfaces are
+CPU-accessible software surfaces; no Metal/GPU issues possible.
 """
 from __future__ import annotations
 import sys
@@ -13,9 +14,7 @@ class Game:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption(WINDOW_TITLE)
-        self.screen  = pygame.display.set_mode(
-            (WINDOW_WIDTH, WINDOW_HEIGHT),
-        )
+        self.screen  = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.clock   = pygame.time.Clock()
         self.running = True
         self._error: str | None = None
@@ -38,11 +37,6 @@ class Game:
 
         self._current: object | None = None
         self._next:    tuple  | None = None
-
-        # Software backbuffer — all drawing happens here, then one blit to the
-        # Metal display surface.  This sidesteps every macOS Metal surface issue
-        # (set_clip clearing the hw surface, get_at reading wrong buffer, etc.).
-        self._backbuf = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
 
         self.change_state("menu")
 
@@ -103,6 +97,9 @@ class Game:
         while self.running:
             dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
 
+            # get_surface() is always authoritative on every platform
+            surface = pygame.display.get_surface()
+
             self._apply_transition()
 
             for event in pygame.event.get():
@@ -110,21 +107,18 @@ class Game:
                     self.running = False
                     break
                 elif event.type in (pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT):
-                    pass  # let the redraw at end of loop handle it
+                    pass
                 elif not self._error and self._current:
                     try:
                         self._current.handle_event(event)
                     except Exception:
-                        pass   # non-fatal; don't blank the screen
-
-            # ── Draw everything into the software backbuffer ──
-            buf = self._backbuf
+                        pass
 
             if self._error:
                 try:
-                    self._draw_error(buf)
+                    self._draw_error(surface)
                 except Exception:
-                    buf.fill((20, 0, 0))   # last-resort red fill
+                    surface.fill((20, 0, 0))
                 keys = pygame.key.get_pressed()
                 if keys[pygame.K_ESCAPE]:
                     self._error   = None
@@ -136,19 +130,16 @@ class Game:
                 except Exception:
                     self._error = traceback.format_exc()
 
-                buf.fill(C_BG)
+                surface.fill(C_BG)
                 try:
-                    self._current.draw(buf)
+                    self._current.draw(surface)
                 except Exception:
                     self._error = traceback.format_exc()
             else:
-                buf.fill(C_BG)
+                surface.fill(C_BG)
 
-            # ── Single blit to the Metal display surface ──
-            # pump() lets macOS Cocoa process its own events so the Metal
-            # swap chain doesn't expire between our draw and the present.
+            # pump() keeps the Cocoa swap chain alive on macOS
             pygame.event.pump()
-            pygame.display.get_surface().blit(buf, (0, 0))
             pygame.display.flip()
 
         pygame.quit()
