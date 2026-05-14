@@ -39,6 +39,11 @@ class Game:
         self._current: object | None = None
         self._next:    tuple  | None = None
 
+        # Software backbuffer — all drawing happens here, then one blit to the
+        # Metal display surface.  This sidesteps every macOS Metal surface issue
+        # (set_clip clearing the hw surface, get_at reading wrong buffer, etc.).
+        self._backbuf = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+
         self.change_state("menu")
 
     # ------------------------------------------------------------------
@@ -98,11 +103,6 @@ class Game:
         while self.running:
             dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
 
-            # Always draw to whatever surface SDL currently considers active.
-            # On macOS a VIDEORESIZE / Retina re-init can replace the surface;
-            # get_surface() is always correct regardless.
-            surface = pygame.display.get_surface()
-
             self._apply_transition()
 
             for event in pygame.event.get():
@@ -117,11 +117,14 @@ class Game:
                     except Exception:
                         pass   # non-fatal; don't blank the screen
 
+            # ── Draw everything into the software backbuffer ──
+            buf = self._backbuf
+
             if self._error:
                 try:
-                    self._draw_error(surface)
+                    self._draw_error(buf)
                 except Exception:
-                    surface.fill((20, 0, 0))   # last-resort red fill
+                    buf.fill((20, 0, 0))   # last-resort red fill
                 keys = pygame.key.get_pressed()
                 if keys[pygame.K_ESCAPE]:
                     self._error   = None
@@ -133,17 +136,19 @@ class Game:
                 except Exception:
                     self._error = traceback.format_exc()
 
-                surface.fill(C_BG)
+                buf.fill(C_BG)
                 try:
-                    self._current.draw(surface)
+                    self._current.draw(buf)
                 except Exception:
                     self._error = traceback.format_exc()
             else:
-                surface.fill(C_BG)
+                buf.fill(C_BG)
 
+            # ── Single blit to the Metal display surface ──
             # pump() lets macOS Cocoa process its own events so the Metal
             # swap chain doesn't expire between our draw and the present.
             pygame.event.pump()
+            pygame.display.get_surface().blit(buf, (0, 0))
             pygame.display.flip()
 
         pygame.quit()
