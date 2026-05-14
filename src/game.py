@@ -13,8 +13,9 @@ class Game:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption(WINDOW_TITLE)
+        # Fixed size — avoids VIDEORESIZE/Retina stale-surface issues on macOS
         self.screen  = pygame.display.set_mode(
-            (WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE
+            (WINDOW_WIDTH, WINDOW_HEIGHT)
         )
         self.clock   = pygame.time.Clock()
         self.running = True
@@ -98,18 +99,17 @@ class Game:
         while self.running:
             dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
 
+            # Always draw to whatever surface SDL currently considers active.
+            # On macOS a VIDEORESIZE / Retina re-init can replace the surface;
+            # get_surface() is always correct regardless.
+            surface = pygame.display.get_surface()
+
             self._apply_transition()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
                     break
-                elif event.type == pygame.VIDEORESIZE:
-                    # Recreate surface — states must always accept the
-                    # surface passed into draw(), never cache it.
-                    self.screen = pygame.display.set_mode(
-                        event.size, pygame.RESIZABLE
-                    )
                 elif not self._error and self._current:
                     try:
                         self._current.handle_event(event)
@@ -117,7 +117,7 @@ class Game:
                         pass   # non-fatal; don't blank the screen
 
             if self._error:
-                self._draw_error()
+                self._draw_error(surface)
                 keys = pygame.key.get_pressed()
                 if keys[pygame.K_ESCAPE]:
                     self._error   = None
@@ -129,11 +129,14 @@ class Game:
                 except Exception:
                     self._error = traceback.format_exc()
 
-                self.screen.fill(C_BG)
+                surface.fill(C_BG)
                 try:
-                    self._current.draw(self.screen)
+                    self._current.draw(surface)
                 except Exception:
                     self._error = traceback.format_exc()
+            else:
+                # Safety fallback — should never reach here, but prevents black
+                surface.fill(C_BG)
 
             pygame.display.flip()
 
@@ -141,14 +144,14 @@ class Game:
         sys.exit()
 
     # ------------------------------------------------------------------
-    def _draw_error(self):
-        self.screen.fill((20, 0, 0))
+    def _draw_error(self, surface: pygame.Surface):
+        surface.fill((20, 0, 0))
         font_h = pygame.font.Font(None, 30)
         font_b = pygame.font.Font(None, 20)
-        hdr = font_h.render("GAME ERROR  —  press ESC to return to menu", True, (255, 80, 80))
-        self.screen.blit(hdr, (20, 16))
+        hdr = font_h.render("GAME ERROR - press ESC to return to menu", True, (255, 80, 80))
+        surface.blit(hdr, (20, 16))
         y = 56
-        for line in self._error.splitlines()[:28]:
+        for line in (self._error or "").splitlines()[:28]:
             s = font_b.render(line[:150], True, (255, 210, 210))
-            self.screen.blit(s, (20, y))
+            surface.blit(s, (20, y))
             y += 20
