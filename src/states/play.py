@@ -1,6 +1,4 @@
-"""
-Main gameplay state — handles Watch, Command, and Hero modes.
-"""
+"""Main gameplay state — Watch, Command, and Hero modes."""
 from __future__ import annotations
 import math
 import pygame
@@ -10,79 +8,74 @@ from src.constants import (
     MODE_WATCH, MODE_COMMAND, MODE_HERO,
     DIFF_NORMAL, GRID_SIZE,
     C_UI_TEXT, C_UI_TEXT_BRIGHT, C_UI_TEXT_DIM,
-    C_UI_PANEL, C_UI_PANEL_2, C_UI_BORDER, C_UI_BORDER_HI,
-    C_UI_ACCENT, C_BTN_NORMAL, C_BTN_BORDER, C_BTN_TEXT,
-    C_GREEN, C_RED, C_YELLOW, C_WHITE, C_BLACK,
+    C_UI_PANEL, C_UI_PANEL_2, C_UI_BORDER, C_UI_BORDER_HI, C_UI_ACCENT,
+    C_GREEN, C_RED, C_YELLOW, C_WHITE, C_BLACK, C_ORANGE,
     C_HUNTER_NAV, C_HUNTER_END, C_HUNTER_STH, C_HUNTER_HERO,
     C_TREASURE_GOLD, C_KNIGHT,
+    C_SPARK_BRONZE, C_SPARK_SILVER, C_SPARK_GOLD,
 )
 from src.simulation import (
     EldoriaSimulation, Hunter, Knight, Treasure, Hideout, Garrison,
-    EntityType, HunterSkill, HunterState, KnightState,
-    astar,
+    EntityType, HunterSkill, HunterState, KnightState, astar, dist,
 )
 from src.renderer import GameRenderer, FadeTransition
 from src.particles import ParticleSystem
-from src.ui import (
-    Button, Panel, ScrollText, draw_text, draw_panel, draw_hline, get_font,
-)
+from src.ui import Button, ScrollText, draw_text, draw_panel, draw_hline, get_font
 
 
 class PlayState:
-    # Steps per second at speed=5 (1..10 → 0.5..10 steps/sec)
-    _SPEED_TABLE = {1: 0.3, 2: 0.6, 3: 1.0, 4: 2.0, 5: 3.0,
-                    6: 5.0, 7: 8.0, 8: 12.0, 9: 18.0, 10: 30.0}
+    _SPEED = {1: 0.3, 2: 0.6, 3: 1.0, 4: 2.0, 5: 3.5,
+              6: 6.0, 7: 10.0, 8: 16.0, 9: 24.0, 10: 40.0}
 
     def __init__(self, game):
-        self.game = game
-        self.sim: EldoriaSimulation | None = None
-        self.renderer: GameRenderer | None = None
-        self.particles = ParticleSystem()
-        self.fade = FadeTransition(0.35)
+        self.game       = game
+        self.sim        = None
+        self.renderer   = None
+        self.particles  = ParticleSystem()
+        self.fade       = FadeTransition(0.4)
 
         self.mode       = MODE_WATCH
         self.difficulty = DIFF_NORMAL
-        self.speed      = 5        # 1..10
-        self._step_acc  = 0.0     # accumulator for sub-step timing
+        self.speed      = 5
+        self._step_acc  = 0.0
         self._running   = True
-        self._paused    = False
 
-        # Stats tracking for achievements
+        # Stats
         self._total_collects = 0
         self._total_gold     = 0
         self._hero_collect   = False
         self._evasions       = 0
 
-        # Hero camera
-        self._cam_x = 0.0
-        self._cam_y = 0.0
-        self._hero: Hunter | None = None
+        # Camera
+        self._cam_x  = 0.0
+        self._cam_y  = 0.0
+        self._hero   = None
 
         # Command mode
-        self._selected_hunter: Hunter | None = None
+        self._selected = None
 
-        # Event log
-        self._log: ScrollText | None = None
-
-        # Toolbar buttons (built in enter())
+        # UI
+        self._log:     ScrollText | None = None
         self._toolbar: list[Button] = []
 
-        # Achievement toast display
-        self._toast_queue: list[dict] = []
-        self._toast_timer   = 0.0
-        self._toast_text    = ""
+        # Toast
+        self._toast_queue = []
+        self._toast_timer = 0.0
+        self._toast_text  = ""
 
-        # Inline pause overlay
-        self._show_pause_overlay = False
-        self._pause_buttons: list[Button] = []
+        # Danger flash
+        self._danger_alpha = 0.0
+
+        # Pause overlay
+        self._paused_overlay = False
+        self._pause_btns:  list[Button] = []
+
+        # Score popup throttle
+        self._last_score_popup = 0
 
     # ------------------------------------------------------------------
-    # Lifecycle
-    # ------------------------------------------------------------------
-    def enter(self, mode: str = MODE_WATCH,
-              difficulty: str = DIFF_NORMAL,
-              _resume: bool = False, **kwargs):
-        # Resuming from pause / settings — don't tear down the simulation
+    def enter(self, mode=MODE_WATCH, difficulty=DIFF_NORMAL,
+              _resume=False, **kwargs):
         if _resume and self.sim is not None:
             self._running = True
             return
@@ -90,74 +83,61 @@ class PlayState:
         self.mode       = mode
         self.difficulty = difficulty
         self._running   = True
-        self._paused    = False
         self._step_acc  = 0.0
         self._total_collects = 0
         self._total_gold     = 0
         self._hero_collect   = False
         self._evasions       = 0
-        self.particles  = ParticleSystem()
+        self.particles       = ParticleSystem()
+        self._danger_alpha   = 0.0
+        self._paused_overlay = False
 
-        # Build simulation
-        self.sim = EldoriaSimulation(
-            grid_size=self.game.settings["grid_size"],
-            difficulty=difficulty,
-        )
+        gs = self.game.settings["grid_size"]
+        self.sim = EldoriaSimulation(grid_size=gs, difficulty=difficulty)
         self.sim.initialize()
         self._hook_events()
 
-        # Hero mode: create player hunter
         if mode == MODE_HERO:
             hideouts = [e for e in self.sim.entities if isinstance(e, Hideout)]
             start = hideouts[0].position if hideouts else (0, 0)
             self._hero = Hunter(start, HunterSkill.NAVIGATION,
                                 is_hero=True, difficulty=difficulty)
-            self._hero.known_hideouts = {e.position
-                                         for e in self.sim.entities
+            self._hero.known_hideouts = {e.position for e in self.sim.entities
                                          if isinstance(e, Hideout)}
             self.sim.add_entity(self._hero)
-            self._cam_target_entity()
+            self._cam_to_hero()
         else:
             self._hero = None
 
-        # Renderer
-        self.renderer = GameRenderer(self.game.screen, self.sim)
+        # Renderer — no screen stored; always passed in draw()
+        self.renderer = GameRenderer(self.sim)
 
         # Event log
         log_rect = pygame.Rect(
             WINDOW_WIDTH - HUD_WIDTH + 8,
-            WINDOW_HEIGHT - 200,
-            HUD_WIDTH - 16,
-            190,
+            WINDOW_HEIGHT - 206,
+            HUD_WIDTH - 16, 196,
         )
         self._log = ScrollText(log_rect, font_size=13)
         self._log.add("Simulation started!", C_UI_TEXT_BRIGHT)
 
-        # Toolbar
+        self.speed = self.game.settings["sim_speed"]
         self._build_toolbar()
 
-        # Fetch saved speed
-        self.speed = self.game.settings["sim_speed"]
-        self._show_pause_overlay = False
-
-        # Build inline pause overlay buttons
-        bw, bh = 240, 48
+        bw, bh = 252, 50
         cx = WINDOW_WIDTH // 2
-        self._pause_buttons = [
-            Button(pygame.Rect(cx - bw//2, 280, bw, bh), "RESUME",
+        self._pause_btns = [
+            Button(pygame.Rect(cx-bw//2, 274, bw, bh), "RESUME",
                    callback=self._close_pause, font_size=22),
-            Button(pygame.Rect(cx - bw//2, 340, bw, bh), "SETTINGS",
-                   callback=lambda: self.game.change_state(
-                       "settings", return_to="play"), font_size=22),
-            Button(pygame.Rect(cx - bw//2, 400, bw, bh), "MAIN MENU",
+            Button(pygame.Rect(cx-bw//2, 336, bw, bh), "SETTINGS",
+                   callback=lambda: self.game.change_state("settings", return_to="play"),
+                   font_size=22),
+            Button(pygame.Rect(cx-bw//2, 398, bw, bh), "MAIN MENU",
                    callback=lambda: self.game.change_state("menu"), font_size=22),
         ]
 
-        # Achievement: mode-specific
-        if mode == MODE_WATCH:
-            self.game.achievements.unlock("watch_mode")
-        elif mode == MODE_HERO:
-            self.game.achievements.unlock("hero_mode")
+        if mode == MODE_WATCH: self.game.achievements.unlock("watch_mode")
+        if mode == MODE_HERO:  self.game.achievements.unlock("hero_mode")
 
         self.fade.fade_in()
         self.game.audio.play_music()
@@ -166,8 +146,6 @@ class PlayState:
         self.game.audio.stop_music()
 
     # ------------------------------------------------------------------
-    # Event wiring
-    # ------------------------------------------------------------------
     def _hook_events(self):
         sim = self.sim
 
@@ -175,14 +153,11 @@ class PlayState:
             self._total_collects += 1
             self._log.add(f"Treasure collected! (#{self._total_collects})", C_TREASURE_GOLD)
 
-        def on_gold_collect():
-            self._total_gold += 1
-
         def on_challenge():
-            self._log.add("A hunter was challenged by a knight!", C_RED)
+            self._log.add("A hunter was challenged!", C_RED)
 
         def on_warning():
-            self._log.add("Knight spotted a hunter — pursuing!", C_YELLOW)
+            self._log.add("Knight spotted a hunter!", C_YELLOW)
 
         def on_deposit():
             self._log.add("Treasure deposited at hideout.", C_GREEN)
@@ -201,138 +176,98 @@ class PlayState:
         sim.add_listener("recruit",          lambda: self.game.achievements.unlock("recruiter"))
 
     def _open_pause(self):
-        self._show_pause_overlay = True
+        self._paused_overlay = True
         self._running = False
 
     def _close_pause(self):
-        self._show_pause_overlay = False
+        self._paused_overlay = False
         self._running = True
 
     # ------------------------------------------------------------------
-    # Toolbar
-    # ------------------------------------------------------------------
     def _build_toolbar(self):
-        bw, bh = 70, 30
+        bh = 30
         y0 = 6
         x0 = WINDOW_WIDTH - HUD_WIDTH + 8
         self._toolbar = []
 
-        # Speed - / +
-        def dec_speed():
-            self.speed = max(1, self.speed - 1)
-            self.game.settings["sim_speed"] = self.speed
+        def dec(): self.speed = max(1, self.speed-1); self.game.settings["sim_speed"]=self.speed
+        def inc(): self.speed = min(10, self.speed+1); self.game.settings["sim_speed"]=self.speed
+        def tog(): self._running = not self._running
 
-        def inc_speed():
-            self.speed = min(10, self.speed + 1)
-            self.game.settings["sim_speed"] = self.speed
-
-        self._toolbar.append(Button(pygame.Rect(x0,       y0, 34, bh), "–",
-                                    callback=dec_speed, font_size=20))
-        self._toolbar.append(Button(pygame.Rect(x0 + 36,  y0, 34, bh), "+",
-                                    callback=inc_speed, font_size=20))
-
-        # Pause / resume
-        def toggle_pause():
-            self._running = not self._running
-
-        self._toolbar.append(Button(pygame.Rect(x0 + 76, y0, 68, bh),
-                                    "PAUSE", callback=toggle_pause, font_size=15))
-
-        # Pause menu
-        self._toolbar.append(Button(
-            pygame.Rect(x0 + 150, y0, 68, bh), "MENU",
-            callback=lambda: self._open_pause(),
-            font_size=15,
-        ))
-
-        # Step (single advance)
-        self._toolbar.append(Button(
-            pygame.Rect(x0 + 224, y0, 54, bh), "STEP",
-            callback=self._do_step, font_size=14,
-        ))
+        self._toolbar += [
+            Button(pygame.Rect(x0,      y0, 34, bh), "–", callback=dec, font_size=20),
+            Button(pygame.Rect(x0+36,   y0, 34, bh), "+", callback=inc, font_size=20),
+            Button(pygame.Rect(x0+76,   y0, 68, bh), "PAUSE",callback=tog, font_size=14),
+            Button(pygame.Rect(x0+150,  y0, 64, bh), "MENU", callback=self._open_pause, font_size=14),
+            Button(pygame.Rect(x0+220,  y0, 58, bh), "STEP", callback=self._do_step, font_size=13),
+        ]
 
     # ------------------------------------------------------------------
     # Input
     # ------------------------------------------------------------------
-    def handle_event(self, event: pygame.event.Event):
-        # Inline pause overlay gets first pick
-        if self._show_pause_overlay:
+    def handle_event(self, event):
+        if self._paused_overlay:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                self._close_pause()
-                return
-            for b in self._pause_buttons:
+                self._close_pause(); return
+            for b in self._pause_btns:
                 if b.handle_event(event):
-                    self.game.audio.play("ui_click")
-                    return
-            return   # block all other input while overlay is open
+                    self.game.audio.play("ui_click"); return
+            return
 
-        # Pass to log for scroll
         if self._log:
             self._log.handle_event(event)
-
         for b in self._toolbar:
             if b.handle_event(event):
                 self.game.audio.play("ui_click")
 
         if event.type == pygame.KEYDOWN:
-            self._handle_key(event)
-
-        # Command mode: click to select/command
+            self._key(event)
         if self.mode == MODE_COMMAND and event.type == pygame.MOUSEBUTTONDOWN:
-            self._handle_command_click(event)
+            self._cmd_click(event)
 
-    def _handle_key(self, event: pygame.event.Event):
+    def _key(self, event):
         k = event.key
 
-        # Hero mode — movement keys take full priority
         if self.mode == MODE_HERO and self._hero:
-            dx, dy = 0, 0
-            if   k in (pygame.K_w, pygame.K_UP):    dy = -1
-            elif k in (pygame.K_s, pygame.K_DOWN):  dy =  1
-            elif k in (pygame.K_a, pygame.K_LEFT):  dx = -1
-            elif k in (pygame.K_d, pygame.K_RIGHT): dx =  1
-            if dx != 0 or dy != 0:
+            dx = dy = 0
+            if k in (pygame.K_w, pygame.K_UP):    dy = -1
+            elif k in (pygame.K_s, pygame.K_DOWN): dy =  1
+            elif k in (pygame.K_a, pygame.K_LEFT): dx = -1
+            elif k in (pygame.K_d, pygame.K_RIGHT):dx =  1
+            if dx or dy:
                 self._hero.hero_dx = dx
                 self._hero.hero_dy = dy
                 self._hero.update(self.sim)
-                self._cam_target_entity()
+                self._cam_to_hero()
+                if self._hero.carried_treasure:
+                    self._hero_collect = True
                 if self.renderer:
                     tw = self.renderer._tile_w
                     th = self.renderer._tile_h
                     mr = self.renderer.map_rect
-                else:
-                    tw = th = TILE_SIZE
-                    mr = pygame.Rect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
-                sx = self._hero.position[0]*tw - int(self._cam_x) + mr.left
-                sy = self._hero.position[1]*th - int(self._cam_y) + mr.top
-                self.particles.dust(sx + tw//2, sy + th//2)
-                if self._hero.carried_treasure:
-                    self._hero_collect = True
-                return   # don't fall through to other key bindings
+                    sx = self._hero.position[0]*tw - int(self._cam_x) + mr.left
+                    sy = self._hero.position[1]*th - int(self._cam_y) + mr.top
+                    self.particles.dust(sx + tw//2, sy + th//2)
+                return
 
-        # Non-hero key bindings
         if k == pygame.K_ESCAPE:
-            if self._show_pause_overlay:
-                self._close_pause()
-            else:
-                self._open_pause()
+            self._close_pause() if self._paused_overlay else self._open_pause()
         elif k == pygame.K_SPACE:
             self._running = not self._running
         elif k in (pygame.K_MINUS, pygame.K_KP_MINUS):
-            self.speed = max(1, self.speed - 1)
-        elif k in (pygame.K_EQUALS, pygame.K_KP_PLUS, pygame.K_KP_EQUALS):
-            self.speed = min(10, self.speed + 1)
+            self.speed = max(1, self.speed-1)
+        elif k in (pygame.K_EQUALS, pygame.K_KP_PLUS):
+            self.speed = min(10, self.speed+1)
         elif k == pygame.K_s:
             self._do_step()
 
-    def _handle_command_click(self, event: pygame.event.Event):
-        """Click on a hunter to select, click elsewhere to move."""
+    def _cmd_click(self, event):
         if not self.renderer:
             return
-        tw  = self.renderer._tile_w
-        th  = self.renderer._tile_h
+        tw = self.renderer._tile_w
+        th = self.renderer._tile_h
         mx, my = event.pos
-        mr  = self.renderer.map_rect
+        mr = self.renderer.map_rect
         if not mr.collidepoint(mx, my):
             return
         gx = (mx - mr.left + int(self._cam_x)) // max(1, tw)
@@ -341,44 +276,38 @@ class PlayState:
         gy = max(0, min(self.sim.grid_size-1, gy))
         pos = (gx, gy)
 
-        # Check if clicking on a hunter
-        clicked_hunter = None
+        clicked = None
         for e in self.sim.entities:
             if isinstance(e, Hunter) and not e.is_hero and e.position == pos:
-                clicked_hunter = e
-                break
+                clicked = e; break
 
-        if clicked_hunter:
-            self._selected_hunter = clicked_hunter
-            self._log.add(f"Hunter selected ({clicked_hunter.skill.name})", C_UI_ACCENT)
+        if clicked:
+            self._selected = clicked
+            self._log.add(f"Hunter selected ({clicked.skill.name})", C_UI_ACCENT)
             self.game.achievements.unlock("command_mode")
-        elif self._selected_hunter and self._selected_hunter in self.sim.entities:
-            h = self._selected_hunter
+        elif self._selected and self._selected in self.sim.entities:
+            h = self._selected
             h.target_position = pos
             h.current_path = astar(h.position, pos, set(), self.sim.grid_size)
             h.state = HunterState.COLLECTING
-            self._log.add(f"Command issued: move to {pos}", C_UI_TEXT_DIM)
+            self._log.add(f"Command: move to {pos}", C_UI_TEXT_DIM)
 
     # ------------------------------------------------------------------
-    # Simulation step
+    # Simulation
     # ------------------------------------------------------------------
     def _do_step(self):
         if not self.sim or self.sim.is_complete():
             return
         self.sim.step()
-        self._process_sim_events()
-        self._check_completion()
+        self._process_events()
+        self._check_end()
 
-    def _process_sim_events(self):
-        if not self.sim:
+    def _process_events(self):
+        if not self.sim or not self.renderer:
             return
-        if self.renderer:
-            tw = self.renderer._tile_w
-            th = self.renderer._tile_h
-            mr = self.renderer.map_rect
-        else:
-            tw = th = TILE_SIZE
-            mr = pygame.Rect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
+        tw = self.renderer._tile_w
+        th = self.renderer._tile_h
+        mr = self.renderer.map_rect
 
         for name, entity in self.sim.events:
             if entity is None:
@@ -389,79 +318,95 @@ class PlayState:
 
             if name == "collect_treasure" and isinstance(entity, Hunter):
                 ct = entity.carried_treasure
-                if ct:
-                    label = ct.label()
-                else:
-                    label = "gold"
+                label = ct.label() if ct else "gold"
                 self.particles.burst_collect(cx, cy, label)
+                # Score popup
+                pts = {"bronze": "+3", "silver": "+7", "gold": "+13"}.get(label, "+pts")
+                col = {"bronze": C_SPARK_BRONZE,
+                       "silver": C_SPARK_SILVER,
+                       "gold":   C_SPARK_GOLD}.get(label, C_TREASURE_GOLD)
+                self.particles.add_popup(cx, cy - 20, pts, col)
+
             elif name in ("challenge", "challenge_hit"):
                 self.particles.burst_combat(cx, cy)
-            elif name == "footsteps" and isinstance(entity, Hunter):
-                self.particles.dust(cx, cy)
+                self._danger_alpha = 1.0   # red flash
 
-    def _check_completion(self):
+            elif name == "footsteps":
+                if isinstance(entity, Hunter):
+                    self.particles.dust(cx, cy)
+
+    def _check_end(self):
         if not self.sim:
             return
         stats = self.sim.statistics()
-        # Achievements
         self.game.achievements.check_stats(
             stats, self.mode, self._total_collects,
-            self._total_gold, self._hero_collect, self._evasions
-        )
-        # Queue any pending achievement toasts
+            self._total_gold, self._hero_collect, self._evasions)
         a = self.game.achievements.pop_pending()
         if a:
             self._toast_queue.append(a)
-
         if self.sim.is_complete():
             self._running = False
-            self.game.change_state(
-                "victory" if stats["pct"] >= 50 else "gameover",
-                stats=stats, mode=self.mode, difficulty=self.difficulty,
-            )
+            result = "victory" if stats["pct"] >= 50 else "gameover"
+            self.game.change_state(result, stats=stats,
+                                   mode=self.mode, difficulty=self.difficulty)
 
     # ------------------------------------------------------------------
     # Camera
     # ------------------------------------------------------------------
-    def _cam_target_entity(self):
-        if not self.renderer or not self._hero:
+    def _cam_to_hero(self):
+        if not self._hero or not self.renderer:
             return
-        tw  = self.renderer._tile_w
-        th  = self.renderer._tile_h
-        mr  = self.renderer.map_rect
-        gs  = self.sim.grid_size if self.sim else GRID_SIZE
-        tx  = self._hero.position[0] * tw - mr.width  // 2
-        ty  = self._hero.position[1] * th - mr.height // 2
-        self._cam_x = max(0, min(tx, gs * tw - mr.width))
-        self._cam_y = max(0, min(ty, gs * th - mr.height))
+        tw = self.renderer._tile_w
+        th = self.renderer._tile_h
+        mr = self.renderer.map_rect
+        gs = self.sim.grid_size
+        tx = self._hero.position[0]*tw - mr.width//2
+        ty = self._hero.position[1]*th - mr.height//2
+        self._cam_x = max(0.0, min(float(tx), gs*tw - mr.width))
+        self._cam_y = max(0.0, min(float(ty), gs*th - mr.height))
+
+    # ------------------------------------------------------------------
+    # Danger detection
+    # ------------------------------------------------------------------
+    def _check_danger(self):
+        if not self.sim:
+            return False
+        hunters = [e for e in self.sim.entities if isinstance(e, Hunter)]
+        knights = [e for e in self.sim.entities if isinstance(e, Knight)]
+        gs = self.sim.grid_size
+        for k in knights:
+            if k.state == KnightState.PURSUING:
+                for h in hunters:
+                    if dist(k.position, h.position, gs) <= 4:
+                        return True
+        return False
 
     # ------------------------------------------------------------------
     # Update
     # ------------------------------------------------------------------
     def update(self, dt: float):
         self.fade.update(dt)
+        for b in self._toolbar:  b.update(dt)
+        for b in self._pause_btns: b.update(dt)
 
-        for b in self._toolbar:
-            b.update(dt)
-
-        for b in self._pause_buttons:
-            b.update(dt)
-
-        # Toast
         if self._toast_queue and self._toast_timer <= 0:
             a = self._toast_queue.pop(0)
-            self._toast_text  = f"{a['icon']} {a['name']}: {a['desc']}"
-            self._toast_timer = 3.5
+            self._toast_text  = f"  {a['icon']}  {a['name']}: {a['desc']}"
+            self._toast_timer = 4.0
         if self._toast_timer > 0:
             self._toast_timer -= dt
 
+        # Danger flash fade
+        if self._danger_alpha > 0:
+            self._danger_alpha = max(0.0, self._danger_alpha - dt * 1.8)
+
         self.particles.update(dt)
 
-        if not self._running or self._paused:
+        if not self._running or self._paused_overlay:
             return
 
-        # Accumulate simulation steps
-        sps = self._SPEED_TABLE.get(self.speed, 3.0)
+        sps = self._SPEED.get(self.speed, 3.5)
         self._step_acc += sps * dt
         steps = int(self._step_acc)
         self._step_acc -= steps
@@ -471,127 +416,132 @@ class PlayState:
             else:
                 break
 
-        # Smooth camera follow in hero mode
-        if self.mode == MODE_HERO and self._hero and self.renderer:
-            self._cam_target_entity()
+        if self.mode == MODE_HERO and self._hero:
+            self._cam_to_hero()
+
+        # Danger sparkles
+        if self._check_danger():
+            self._danger_alpha = min(1.0, self._danger_alpha + dt * 3)
 
     # ------------------------------------------------------------------
     # Draw
     # ------------------------------------------------------------------
     def draw(self, surface: pygame.Surface):
         if not self.renderer:
+            surface.fill((10, 0, 0))
+            font = pygame.font.Font(None, 36)
+            surface.blit(font.render("Initialising…", True, (255,200,100)), (40, 40))
             return
 
-        self.renderer.draw(dt=0.016, cam=(int(self._cam_x), int(self._cam_y)))
+        # CRITICAL: always pass the current surface — never let renderer cache it
+        cam = (int(self._cam_x), int(self._cam_y))
+        self.renderer.draw(surface, dt=0.016, cam=cam)
         self.particles.draw(surface)
 
-        # Toolbar
         self._draw_toolbar(surface)
 
         # Mode label
-        mode_lbl = {"watch": "WATCH", "command": "COMMAND", "hero": "HERO"}.get(
-            self.mode, self.mode.upper())
-        draw_text(surface, f"Mode: {mode_lbl}",
-                  WINDOW_WIDTH - HUD_WIDTH + 12,
-                  WINDOW_HEIGHT - 225,
+        ml = {"watch":"WATCH","command":"COMMAND","hero":"HERO"}.get(self.mode, self.mode.upper())
+        draw_text(surface, f"Mode: {ml}",
+                  WINDOW_WIDTH - HUD_WIDTH + 12, WINDOW_HEIGHT - 228,
                   size=13, color=C_UI_ACCENT, bold=True)
 
-        # Sim speed
+        # Speed label
         draw_text(surface, f"Speed: {self.speed}x",
-                  WINDOW_WIDTH - HUD_WIDTH + 148,
-                  10, size=13, color=C_UI_TEXT_DIM)
+                  WINDOW_WIDTH - HUD_WIDTH + 148, 10,
+                  size=13, color=C_UI_TEXT_DIM)
 
-        # Pause indicator
-        if not self._running and not self._show_pause_overlay:
-            draw_text(surface, "|| PAUSED", WINDOW_WIDTH//2, 12,
-                      size=24, color=C_YELLOW, bold=True, align="center")
+        # PAUSED banner
+        if not self._running and not self._paused_overlay:
+            self._draw_pause_banner(surface)
 
-        # Command mode selection highlight
-        if self.mode == MODE_COMMAND and self._selected_hunter:
-            h = self._selected_hunter
-            if h in self.sim.entities and self.renderer:
-                tw  = self.renderer._tile_w
-                th  = self.renderer._tile_h
-                mr  = self.renderer.map_rect
-                sx  = h.position[0]*tw - int(self._cam_x) + mr.left
-                sy  = h.position[1]*th - int(self._cam_y) + mr.top
-                r   = pygame.Rect(sx-2, sy-2, tw+4, th+4)
-                pygame.draw.rect(surface, C_TREASURE_GOLD, r, width=2, border_radius=3)
+        # Danger red vignette flash
+        if self._danger_alpha > 0.02:
+            da = int(self._danger_alpha * 70)
+            ds = pygame.Surface((WINDOW_WIDTH - HUD_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+            ds.fill((220, 30, 30, da))
+            surface.blit(ds, (0, 0))
 
-        # Hero HUD extras
+        # Command selection ring
+        if self.mode == MODE_COMMAND and self._selected:
+            h = self._selected
+            if h in self.sim.entities:
+                tw = self.renderer._tile_w
+                th = self.renderer._tile_h
+                mr = self.renderer.map_rect
+                sx = h.position[0]*tw - int(self._cam_x) + mr.left
+                sy = h.position[1]*th - int(self._cam_y) + mr.top
+                rr = pygame.Rect(sx-3, sy-3, tw+6, th+6)
+                pygame.draw.rect(surface, C_TREASURE_GOLD, rr, width=2, border_radius=4)
+                pygame.draw.rect(surface, C_UI_BORDER_HI,  rr.inflate(4,4), width=1, border_radius=6)
+
         if self.mode == MODE_HERO and self._hero:
             self._draw_hero_hud(surface)
 
-        # Event log
         if self._log:
             self._log.draw(surface)
 
-        # Achievement toast
         if self._toast_timer > 0:
             self._draw_toast(surface)
 
-        # Inline pause overlay
-        if self._show_pause_overlay:
+        if self._paused_overlay:
             self._draw_pause_overlay(surface)
 
         self.fade.draw(surface)
 
-    def _draw_toolbar(self, surface: pygame.Surface):
+    # ------------------------------------------------------------------
+    def _draw_toolbar(self, surface):
         for b in self._toolbar:
             b.draw(surface)
 
-    def _draw_hero_hud(self, surface: pygame.Surface):
+    def _draw_pause_banner(self, surface):
+        t = self.game.clock.get_time() / 1000.0 if hasattr(self.game, 'clock') else 0
+        a = int(200 + 55 * math.sin(t * 3.0))
+        draw_text(surface, "|| PAUSED",
+                  WINDOW_WIDTH // 2, 10,
+                  size=28, color=(a, int(a*0.85), 40),
+                  bold=True, align="center", shadow=True)
+
+    def _draw_hero_hud(self, surface):
         h  = self._hero
-        px = WINDOW_WIDTH - HUD_WIDTH + 12
-        py = WINDOW_HEIGHT - 240
-        w  = HUD_WIDTH - 24
-        draw_text(surface, "YOUR HUNTER", px, py, size=14,
+        px = WINDOW_WIDTH - HUD_WIDTH + 14
+        py = WINDOW_HEIGHT - 248
+        w  = HUD_WIDTH - 28
+        draw_text(surface, "YOUR HUNTER",   px, py, size=13,
                   color=C_UI_TEXT_BRIGHT, bold=True)
-        py += 18
-        # Stamina bar
+        py += 17
         draw_text(surface, "Stamina", px, py, size=12, color=C_UI_TEXT_DIM)
-        bar = pygame.Rect(px + 60, py, w - 60, 10)
         from src.ui import ProgressBar
-        pb = ProgressBar(bar, h.stamina, h.max_stamina)
+        pb = ProgressBar(pygame.Rect(px+58, py, w-58, 10), h.stamina, h.max_stamina)
         pb.draw(surface)
-        py += 16
-        # Wealth
-        draw_text(surface, f"Wealth: {h.wealth:.0f}",
-                  px, py, size=12, color=C_TREASURE_GOLD)
-        py += 16
-        draw_text(surface, f"Treasures: {h.treasures_found}",
-                  px, py, size=12, color=C_UI_TEXT)
-        py += 16
-        draw_text(surface, "WASD / Arrows to move",
-                  px, py, size=11, color=C_UI_TEXT_DIM)
+        py += 15
+        draw_text(surface, f"Wealth: {h.wealth:.0f}", px, py, size=12, color=C_TREASURE_GOLD)
+        py += 15
+        draw_text(surface, f"Found:  {h.treasures_found}", px, py, size=12, color=C_UI_TEXT)
+        py += 15
+        draw_text(surface, "WASD / Arrows to move", px, py, size=11, color=C_UI_TEXT_DIM)
 
-    def _draw_toast(self, surface: pygame.Surface):
-        alpha = min(1.0, self._toast_timer / 0.6)
+    def _draw_toast(self, surface):
+        alpha = min(1.0, self._toast_timer / 0.7)
         a     = int(255 * alpha)
-        s     = pygame.Surface((500, 48), pygame.SRCALPHA)
-        s.fill((22, 16, 8, min(220, a)))
-        pygame.draw.rect(s, (*C_UI_BORDER_HI, a), s.get_rect(), width=1,
-                         border_radius=5)
+        s     = pygame.Surface((540, 52), pygame.SRCALPHA)
+        s.fill((18, 14, 32, min(230, a)))
+        pygame.draw.rect(s, (*C_UI_BORDER_HI, a), s.get_rect(), width=1, border_radius=6)
         font = get_font(16, bold=True)
-        ts   = font.render(self._toast_text, True, (220, 200, 150))
-        s.blit(ts, (10, 14))
-        surface.blit(s, (20, WINDOW_HEIGHT - 60))
+        ts   = font.render(self._toast_text, True, (235, 215, 168))
+        s.blit(ts, (12, 16))
+        surface.blit(s, (18, WINDOW_HEIGHT - 64))
 
-    def _draw_pause_overlay(self, surface: pygame.Surface):
-        # Dim everything
+    def _draw_pause_overlay(self, surface):
         dim = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        dim.fill((0, 0, 0, 160))
+        dim.fill((0, 0, 0, 170))
         surface.blit(dim, (0, 0))
-
-        # Panel
-        pw, ph = 300, 220
-        pr = pygame.Rect((WINDOW_WIDTH - pw)//2, (WINDOW_HEIGHT - ph)//2 - 20,
-                         pw, ph)
+        pw, ph = 320, 240
+        pr = pygame.Rect((WINDOW_WIDTH-pw)//2, (WINDOW_HEIGHT-ph)//2 - 20, pw, ph)
         draw_panel(surface, pr)
         draw_text(surface, "PAUSED",
-                  WINDOW_WIDTH//2, pr.top + 16,
-                  size=32, color=C_UI_TEXT_BRIGHT, bold=True,
+                  WINDOW_WIDTH//2, pr.top+18,
+                  size=34, color=C_UI_TEXT_BRIGHT, bold=True,
                   align="center", shadow=True)
-
-        for b in self._pause_buttons:
+        for b in self._pause_btns:
             b.draw(surface)

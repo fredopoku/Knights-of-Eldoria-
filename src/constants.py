@@ -12,12 +12,12 @@ VERSION       = "1.0.0"
 # ---------------------------------------------------------------------------
 # Game Modes
 # ---------------------------------------------------------------------------
-MODE_WATCH    = "watch"     # Watch the AI simulation unfold
-MODE_COMMAND  = "command"   # Click-to-command strategic layer
-MODE_HERO     = "hero"      # Direct WASD control of a hunter
+MODE_WATCH   = "watch"
+MODE_COMMAND = "command"
+MODE_HERO    = "hero"
 
 # ---------------------------------------------------------------------------
-# Difficulty Presets
+# Difficulty
 # ---------------------------------------------------------------------------
 DIFF_EASY      = "easy"
 DIFF_NORMAL    = "normal"
@@ -34,114 +34,115 @@ DIFFICULTY_SETTINGS = {
 # ---------------------------------------------------------------------------
 # Map / Grid
 # ---------------------------------------------------------------------------
-GRID_SIZE   = 30
-TILE_SIZE   = 28        # pixels per grid cell (approximate; renderer recalculates)
+GRID_SIZE = 28
+TILE_SIZE = 28
 
 # ---------------------------------------------------------------------------
-# Simulation physics
+# Simulation
 # ---------------------------------------------------------------------------
-VISIBILITY_RANGE        = 3
-KNIGHT_DETECTION_RANGE  = 3
-STAMINA_MOVEMENT_COST   = 2.0
-STAMINA_CRITICAL_LEVEL  = 6.0
+VISIBILITY_RANGE         = 4
+KNIGHT_DETECTION_RANGE   = 3
+STAMINA_MOVEMENT_COST    = 2.0
+STAMINA_CRITICAL_LEVEL   = 6.0
 KNIGHT_CHASE_ENERGY_COST = 20.0
-KNIGHT_LOW_ENERGY       = 20.0
-TREASURE_DECAY_RATE     = 0.1   # % of initial value lost per step
+KNIGHT_LOW_ENERGY        = 20.0
+TREASURE_DECAY_RATE      = 0.1
 
 # ---------------------------------------------------------------------------
-# UI Layout
+# Layout
 # ---------------------------------------------------------------------------
-HUD_WIDTH      = 290
-MINIMAP_SIZE   = 180
-MINIMAP_PAD    = 8
-EVENT_LOG_LINES = 10
+HUD_WIDTH      = 300
+MINIMAP_SIZE   = 190
+MINIMAP_PAD    = 10
 
 # ---------------------------------------------------------------------------
 # Animation
 # ---------------------------------------------------------------------------
-BOB_SPEED    = 2.5          # radians/sec
-BOB_AMOUNT   = 2            # pixels
-PULSE_SPEED  = 3.0          # radians/sec for treasure glow
+BOB_SPEED   = 2.5
+BOB_AMOUNT  = 2
+PULSE_SPEED = 3.0
 
 # ---------------------------------------------------------------------------
-# Color Palette  (RGB)  — commercial-quality medieval
+# COLOR PALETTE — Dark Fantasy "Glowing World"
 # ---------------------------------------------------------------------------
 
-# -- Map tiles --
-C_BG             = (18,  38,  18)   # Rich dark forest background
-C_TILE_GRASS     = (55, 118,  45)   # Vibrant meadow green
-C_TILE_GRASS_2   = (48, 102,  38)   # Slightly darker variant
-C_TILE_FOREST    = (28,  72,  28)   # Deep forest green
-C_TILE_DIRT      = (140, 100,  58)  # Rich earth brown
-C_TILE_PATH      = (168, 132,  78)  # Warm stone path
-C_GRID           = (38,  80,  34)   # Subtle grid lines
+# Void background
+C_BG = (8, 10, 22)
 
-# -- Entities --
-C_HUNTER_NAV   = ( 80, 170, 255)   # Navigation  – bright blue
-C_HUNTER_END   = ( 80, 210, 120)   # Endurance   – green
-C_HUNTER_STH   = (190, 120, 220)   # Stealth     – purple
-C_HUNTER_HERO  = (255, 215,  60)   # Player hero – gold
+# Map tiles — dark, atmospheric
+C_TILE_GRASS   = (32,  65,  26)
+C_TILE_GRASS_2 = (26,  54,  20)
+C_TILE_FOREST  = (18,  42,  18)
+C_TILE_DIRT    = (88,  64,  40)
+C_TILE_PATH    = (108, 85,  54)
+C_GRID         = (38,  72,  32)
 
-C_KNIGHT       = (215,  45,  45)
-C_KNIGHT_DARK  = (145,  22,  22)
-C_KNIGHT_PURSUE= (255,  85,  40)   # Brighter when chasing
+# Entities — vivid, glowing
+C_HUNTER_NAV  = ( 55, 165, 255)   # Electric blue
+C_HUNTER_END  = ( 65, 235, 115)   # Vivid green
+C_HUNTER_STH  = (205, 105, 255)   # Bright purple
+C_HUNTER_HERO = (255, 220,  55)   # Hero gold
 
-C_TREASURE_BRONZE = (200, 110,  45)
-C_TREASURE_SILVER = (185, 198, 210)
-C_TREASURE_GOLD   = (248, 200,  35)
+C_KNIGHT        = (235,  48,  48)
+C_KNIGHT_DARK   = (145,  22,  22)
+C_KNIGHT_PURSUE = (255, 105,  30)
 
-C_HIDEOUT      = (148, 105,  52)
-C_HIDEOUT_DARK = (100,  68,  30)
-C_GARRISON     = (115,  52,  52)
-C_GARRISON_DARK= ( 72,  28,  28)
+C_TREASURE_BRONZE = (225, 122,  52)
+C_TREASURE_SILVER = (205, 218, 238)
+C_TREASURE_GOLD   = (255, 212,  32)
 
-# -- UI Chrome — rich dark medieval gold --
-C_UI_BG          = (14,   9,   4)
-C_UI_PANEL       = (24,  17,   8)
-C_UI_PANEL_2     = (34,  24,  12)
-C_UI_BORDER      = (175, 130,  42)
-C_UI_BORDER_HI   = (225, 178,  60)
-C_UI_TEXT        = (228, 208, 158)
-C_UI_TEXT_DIM    = (155, 133,  92)
-C_UI_TEXT_BRIGHT = (255, 245, 195)
-C_UI_ACCENT      = (210, 158,  45)
+C_HIDEOUT       = (162, 115,  58)
+C_HIDEOUT_DARK  = (102,  70,  32)
+C_GARRISON      = (132,  54,  54)
+C_GARRISON_DARK = ( 78,  30,  30)
 
-C_BTN_NORMAL = ( 42,  29,  13)
-C_BTN_HOVER  = ( 65,  47,  20)
-C_BTN_ACTIVE = ( 92,  65,  25)
-C_BTN_BORDER = (175, 130,  42)
-C_BTN_TEXT   = (228, 208, 158)
+# UI — dark purple glass with gold trim
+C_UI_BG          = (12,  10,  24)
+C_UI_PANEL       = (18,  15,  32)
+C_UI_PANEL_2     = (26,  22,  44)
+C_UI_BORDER      = (182, 140,  50)
+C_UI_BORDER_HI   = (235, 190,  72)
+C_UI_TEXT        = (235, 215, 168)
+C_UI_TEXT_DIM    = (155, 135, 102)
+C_UI_TEXT_BRIGHT = (255, 248, 205)
+C_UI_ACCENT      = (218, 165,  52)
 
-# -- Status colours --
-C_GREEN  = ( 65, 200,  85)
-C_RED    = (220,  58,  58)
-C_YELLOW = (245, 215,  45)
-C_BLUE   = ( 65, 138, 228)
+C_BTN_NORMAL = ( 28,  22,  50)
+C_BTN_HOVER  = ( 52,  42,  88)
+C_BTN_ACTIVE = ( 78,  62, 118)
+C_BTN_BORDER = (182, 140,  50)
+C_BTN_TEXT   = (235, 215, 168)
+
+# Status
+C_GREEN  = ( 72, 220,  92)
+C_RED    = (228,  58,  58)
+C_YELLOW = (252, 222,  48)
+C_BLUE   = ( 62, 148, 238)
+C_ORANGE = (248, 152,  34)
 C_WHITE  = (255, 255, 255)
 C_BLACK  = (  0,   0,   0)
-C_ORANGE = (240, 145,  30)
 
-# -- HUD bars --
-C_BAR_STAMINA_HI  = ( 65, 205,  85)
-C_BAR_STAMINA_MID = (238, 195,  42)
-C_BAR_STAMINA_LOW = (218,  58,  58)
-C_BAR_ENERGY      = ( 65, 138, 228)
-C_BAR_BG          = ( 32,  22,  10)
-C_BAR_BORDER      = (108,  80,  32)
+# Bars
+C_BAR_STAMINA_HI  = ( 72, 220,  92)
+C_BAR_STAMINA_MID = (248, 208,  46)
+C_BAR_STAMINA_LOW = (228,  58,  58)
+C_BAR_ENERGY      = ( 62, 148, 238)
+C_BAR_BG          = ( 24,  20,  44)
+C_BAR_BORDER      = (102,  80,  34)
 
-# -- Particles --
-C_SPARK_BRONZE = (208, 125,  55)
-C_SPARK_SILVER = (205, 215, 228)
-C_SPARK_GOLD   = (255, 215,  55)
-C_DUST         = (148, 128,  85)
-C_CLASH        = (255,  85,  45)
-C_STAR         = (255, 245, 105)
+# Particles
+C_SPARK_BRONZE = (222, 132,  56)
+C_SPARK_SILVER = (212, 222, 242)
+C_SPARK_GOLD   = (255, 218,  56)
+C_DUST         = (142, 128,  88)
+C_CLASH        = (255,  92,  46)
+C_STAR         = (255, 252, 112)
 
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ASSETS_DIR  = os.path.join(BASE_DIR, "assets")
-DATA_DIR    = os.path.join(BASE_DIR, "data")
-SAVES_DIR   = os.path.join(DATA_DIR, "saves")
-FONTS_DIR   = os.path.join(ASSETS_DIR, "fonts")
+BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ASSETS_DIR = os.path.join(BASE_DIR, "assets")
+DATA_DIR   = os.path.join(BASE_DIR, "data")
+SAVES_DIR  = os.path.join(DATA_DIR, "saves")
+FONTS_DIR  = os.path.join(ASSETS_DIR, "fonts")
