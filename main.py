@@ -28,5 +28,4 @@ async def main():
     # Do NOT call pygame.quit() / sys.exit() here — Pygbag owns the process.
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(main())
