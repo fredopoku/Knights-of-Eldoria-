@@ -159,15 +159,15 @@ class MenuState:
         self._main_btns = [
             Button(pygame.Rect(qx, 296, qw, qh), "QUICK PLAY",
                    callback=self._quick_play, font_size=28),
-            Button(pygame.Rect(cx, 376, bw, bh), "CUSTOM GAME",
+            Button(pygame.Rect(cx, 400, bw, bh), "CUSTOM GAME",
                    callback=self._go_mode, font_size=22),
-            Button(pygame.Rect(cx, 436, bw, bh), "TUTORIAL",
+            Button(pygame.Rect(cx, 458, bw, bh), "TUTORIAL",
                    callback=lambda: self.game.change_state("tutorial"), font_size=22),
-            Button(pygame.Rect(cx, 496, bw, bh), "SETTINGS",
+            Button(pygame.Rect(cx, 516, bw, bh), "SETTINGS",
                    callback=lambda: self.game.change_state("settings"), font_size=22),
-            Button(pygame.Rect(cx, 556, bw, bh), "CREDITS",
+            Button(pygame.Rect(cx, 574, bw, bh), "CREDITS",
                    callback=lambda: self.game.change_state("credits"), font_size=22),
-            Button(pygame.Rect(cx, 616, bw, bh), "QUIT",
+            Button(pygame.Rect(cx, 638, bw, bh), "QUIT",
                    callback=self._quit, font_size=20),
         ]
 
@@ -345,10 +345,10 @@ class MenuState:
             surface.blit(hs, (qr.left - halo_r, qr.top - halo_r))
         qb.draw(surface)
 
-        # "Hero Mode • WASD to move • Q/E/R abilities" hint below Quick Play
-        draw_text(surface, "Hero Mode  •  WASD to move  •  Q / E / R abilities",
-                  cx, qr.bottom + 6, size=13,
-                  color=(int(180 * pulse + 60), int(160 * pulse + 50), 40), align="center")
+        # Hint below Quick Play — sits in the gap above CUSTOM GAME
+        draw_text(surface, "Hero Mode  ·  WASD / D-pad to move  ·  Q E R abilities",
+                  cx, qr.bottom + 10, size=12,
+                  color=(int(150 * pulse + 50), int(130 * pulse + 40), 30), align="center")
 
         # Rest of buttons
         for b in self._main_btns[1:]:

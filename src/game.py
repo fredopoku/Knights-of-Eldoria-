@@ -156,8 +156,8 @@ class Game:
             except Exception:
                 self._error = traceback.format_exc()
 
-            # Touch gamepad — always visible on web, only in play on desktop
-            if self.is_web or self._is_play_state():
+            # Touch gamepad — only during active play (not menus/pause)
+            if self._is_play_state():
                 abilities = self._get_play_abilities()
                 self.touch.draw(surface, abilities=abilities)
         else:
