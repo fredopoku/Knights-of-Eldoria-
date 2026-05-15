@@ -20,14 +20,12 @@ _font_cache: dict[tuple, pygame.font.Font] = {}
 def get_font(size: int, bold: bool = False) -> pygame.font.Font:
     key = (size, bold)
     if key not in _font_cache:
-        for name in ["Georgia", "Palatino Linotype", "Times New Roman", "Serif"]:
-            try:
-                f = pygame.font.SysFont(name, size, bold=bold)
-                _font_cache[key] = f
-                break
-            except Exception:
-                pass
-        if key not in _font_cache:
+        from src.constants import FONTS_DIR
+        import os
+        font_path = os.path.join(FONTS_DIR, "game_font.ttf")
+        try:
+            _font_cache[key] = pygame.font.Font(font_path, max(8, size))
+        except Exception:
             _font_cache[key] = pygame.font.Font(None, max(8, size))
     return _font_cache[key]
 

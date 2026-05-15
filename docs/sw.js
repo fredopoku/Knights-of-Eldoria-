@@ -1,10 +1,12 @@
 // Knights of Eldoria — Service Worker
-// Caches the game for offline play after first load.
-const CACHE = "eldoria-v4";
+// Caches the shell for offline play after first load.
+const CACHE = "eldoria-v5";
 
 const ASSETS = [
   "./index.html",
+  "./game.html",
   "./manifest.json",
+  "./favicon.png",
   "./icon-192.png",
   "./icon-512.png",
 ];
@@ -26,8 +28,8 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(resp => {
-      // Cache pygbag build assets (wasm, js, zip) for offline
-      if (e.request.url.match(/\.(wasm|js|zip|data)$/)) {
+      // Cache pygbag build assets and the game archive for offline play
+      if (e.request.url.match(/\.(wasm|js|zip|data|tar\.gz|apk|whl)$/)) {
         const clone = resp.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
       }

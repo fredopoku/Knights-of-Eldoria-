@@ -4,7 +4,6 @@ SDL_RENDER_DRIVER=software is set in main.py so all surfaces are
 CPU-accessible software surfaces; no Metal/GPU issues possible.
 """
 from __future__ import annotations
-import sys
 import traceback
 import pygame
 from src.constants import WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, FPS, C_BG
@@ -106,8 +105,6 @@ class Game:
         """Desktop blocking loop — calls frame() until game ends."""
         while self.running:
             self.frame()
-        pygame.quit()
-        sys.exit()
 
     def frame(self):
         """Single frame: events → update → draw → flip.

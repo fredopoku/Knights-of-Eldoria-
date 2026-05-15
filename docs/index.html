@@ -2,48 +2,231 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Knights of Eldoria</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#12091e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Eldoria">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="A dark fantasy simulation — become a hunter, outwit the knights, collect the treasure!">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <title>Knights of Eldoria</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #ffd720; --gold2: #c8960a; --purple: #9060e8;
+      --text: #ddd0ff; --dim: #7060a0; --border: #3c2870;
+    }
+    html, body {
+      width: 100%; min-height: 100%;
+      background: #06060e; color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Stars */
+    .stars { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+    .star  { position: absolute; border-radius: 50%; background: #fff; opacity: 0;
+             animation: twinkle var(--d,4s) var(--delay,0s) infinite ease-in-out; }
+    @keyframes twinkle { 0%,100%{opacity:0} 50%{opacity:var(--max-op,.5)} }
+
+    /* Layout */
+    .page {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+      background: radial-gradient(ellipse 80% 60% at 50% 30%, rgba(120,50,200,.22) 0%, transparent 70%);
+    }
+    .content { text-align: center; max-width: 480px; width: 100%; }
+
+    /* Logo */
+    .logo-wrap { margin-bottom: 1rem; }
+    .logo-wrap img {
+      width: 96px; height: 96px; border-radius: 18px;
+      box-shadow: 0 0 32px rgba(144,96,232,.6), 0 0 8px rgba(255,215,32,.3);
+      animation: pulse-glow 3s infinite ease-in-out;
+    }
+    @keyframes pulse-glow {
+      0%,100%{box-shadow:0 0 28px rgba(144,96,232,.5),0 0 8px rgba(255,215,32,.2)}
+      50%    {box-shadow:0 0 52px rgba(144,96,232,.9),0 0 20px rgba(255,215,32,.5)}
+    }
+
+    /* Title */
+    h1 {
+      font-size: clamp(2rem,7vw,3rem); font-weight: 800; letter-spacing: .04em;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 45%, var(--purple) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; line-height: 1.1; margin-bottom: .4rem;
+    }
+    .tagline { font-size: 1rem; color: var(--dim); margin-bottom: 1.8rem; line-height: 1.6; }
+
+    /* Badges */
+    .badges { display: flex; flex-wrap: wrap; justify-content: center; gap: .45rem; margin-bottom: 1.8rem; }
+    .badge {
+      background: rgba(60,40,112,.55); border: 1px solid var(--border);
+      border-radius: 20px; padding: .3rem .75rem; font-size: .78rem; color: var(--text);
+    }
+
+    /* Play button */
+    .btn-play {
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      width: 100%; max-width: 320px; margin: 0 auto .85rem;
+      padding: 1.05rem 1.5rem;
+      background: linear-gradient(135deg,#a06010,var(--gold2),#a06010);
+      background-size: 200% 100%;
+      border: none; border-radius: 12px; color: #1a0e00;
+      font-size: 1.2rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 24px rgba(200,150,10,.5);
+      animation: gold-shimmer 3s infinite linear;
+      transition: transform .12s, box-shadow .12s;
+    }
+    @keyframes gold-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .btn-play:hover  { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(200,150,10,.7); }
+    .btn-play:active { transform: translateY(0);    box-shadow: 0 2px 12px rgba(200,150,10,.4); }
+
+    /* Install button */
+    .btn-install {
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      width: 100%; max-width: 320px; margin: 0 auto 1.4rem;
+      padding: .8rem 1.5rem;
+      background: rgba(60,40,112,.55); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text); font-size: .95rem; font-weight: 600;
+      cursor: pointer; transition: background .15s, transform .12s;
+    }
+    .btn-install:hover { background: rgba(80,55,145,.8); transform: translateY(-1px); }
+    .btn-install.hidden { display: none; }
+
+    /* iOS hint */
+    .ios-hint {
+      display: none; background: rgba(18,9,40,.85); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1rem 1.2rem; margin: 0 auto 1.2rem;
+      text-align: left; font-size: .88rem; line-height: 1.7;
+      max-width: 340px; width: 100%;
+    }
+    .ios-hint h3 { font-size: .92rem; color: var(--gold); margin-bottom: .3rem; }
+    .ios-hint.show { display: block; }
+
+    /* Controls */
+    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin-bottom: 1rem; }
+    .key       { background: rgba(40,30,80,.7); border: 1px solid var(--border);
+                 border-radius: 6px; padding: .22rem .6rem;
+                 font-family: monospace; font-size: .82rem; color: var(--gold); }
+    .key-label { font-size: .82rem; color: var(--dim); align-self: center; }
+
+    .footer { font-size: .75rem; color: var(--dim); margin-top: .5rem; }
+
+    /* Divider */
+    .divider {
+      width: 100%; max-width: 320px; margin: 0 auto 1.4rem;
+      border: none; border-top: 1px solid var(--border);
+    }
+  </style>
 </head>
-<body style="margin:0;background:#09071a;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;">
+<body>
 
-  <div style="text-align:center;padding:2rem;max-width:420px;width:100%;">
+<div class="stars" id="stars"></div>
 
-    <img src="icon-192.png" alt="icon" style="width:80px;height:80px;border-radius:16px;margin-bottom:1rem;">
+<div class="page">
+  <div class="content">
 
-    <h1 style="color:#ffd720;font-size:2rem;margin:0 0 0.5rem;text-shadow:0 0 20px rgba(255,200,0,0.4);">
-      Knights of Eldoria
-    </h1>
+    <div class="logo-wrap">
+      <img src="icon-192.png" alt="Knights of Eldoria">
+    </div>
 
-    <p style="color:#a090c0;margin:0 0 1.5rem;font-size:0.95rem;line-height:1.5;">
+    <h1>Knights of Eldoria</h1>
+    <p class="tagline">
       A dark fantasy simulation.<br>
       Become a hunter. Outwit the knights. Claim the treasure.
     </p>
 
-    <button
-      onclick="window.location.href='game.html'"
-      style="display:block;width:100%;padding:1rem;background:#c8960a;border:none;border-radius:10px;color:#fff;font-size:1.1rem;font-weight:800;letter-spacing:0.08em;cursor:pointer;margin-bottom:1.5rem;text-transform:uppercase;">
-      ▶ &nbsp;PLAY NOW
-    </button>
-
-    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:0.4rem;margin-bottom:1.5rem;">
-      <span style="background:rgba(70,40,120,0.7);border:1px solid #5a3a9a;border-radius:20px;padding:0.25rem 0.7rem;font-size:0.75rem;color:#c8b8f0;">⚔ Hero Mode</span>
-      <span style="background:rgba(70,40,120,0.7);border:1px solid #5a3a9a;border-radius:20px;padding:0.25rem 0.7rem;font-size:0.75rem;color:#c8b8f0;">🛡 3 Abilities</span>
-      <span style="background:rgba(70,40,120,0.7);border:1px solid #5a3a9a;border-radius:20px;padding:0.25rem 0.7rem;font-size:0.75rem;color:#c8b8f0;">🌩 Wave System</span>
-      <span style="background:rgba(70,40,120,0.7);border:1px solid #5a3a9a;border-radius:20px;padding:0.25rem 0.7rem;font-size:0.75rem;color:#c8b8f0;">👑 Boss Knights</span>
-      <span style="background:rgba(70,40,120,0.7);border:1px solid #5a3a9a;border-radius:20px;padding:0.25rem 0.7rem;font-size:0.75rem;color:#c8b8f0;">🏆 25 Achievements</span>
+    <div class="badges">
+      <span class="badge">⚔ Hero Mode</span>
+      <span class="badge">🛡 3 Abilities</span>
+      <span class="badge">🌩 Wave System</span>
+      <span class="badge">👑 Boss Knights</span>
+      <span class="badge">🏆 25 Achievements</span>
+      <span class="badge">📱 Mobile Ready</span>
     </div>
 
-    <p style="color:#5a4880;font-size:0.72rem;">
-      WASD/Arrow Keys to move &nbsp;·&nbsp; Q Dash &nbsp;·&nbsp; E Cloak &nbsp;·&nbsp; R Rally &nbsp;·&nbsp; ESC Pause
-    </p>
+    <button class="btn-play" id="btn-play" onclick="window.location.href='game.html'">
+      ▶&nbsp; PLAY NOW
+    </button>
+
+    <button class="btn-install hidden" id="btn-install">⬇&nbsp; Install App</button>
+
+    <div class="ios-hint" id="ios-hint">
+      <h3>📱 Install on iPhone / iPad</h3>
+      Tap <strong>Share</strong> (box-with-arrow in Safari), then choose
+      <strong>"Add to Home Screen"</strong>.
+    </div>
+
+    <hr class="divider">
+
+    <div class="controls">
+      <span class="key">W A S D</span>
+      <span class="key-label">or</span>
+      <span class="key">↑ ↓ ← →</span>
+      <span class="key-label">Move &nbsp;·&nbsp;</span>
+      <span class="key">Q</span><span class="key-label">Dash &nbsp;·&nbsp;</span>
+      <span class="key">E</span><span class="key-label">Cloak &nbsp;·&nbsp;</span>
+      <span class="key">R</span><span class="key-label">Rally &nbsp;·&nbsp;</span>
+      <span class="key">ESC</span><span class="key-label">Pause</span>
+    </div>
+
+    <p class="footer">Touch D-pad on mobile &nbsp;·&nbsp; Works offline after first load</p>
 
   </div>
+</div>
 
-  <script>
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
-  </script>
+<script>
+// Stars
+(function(){
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 130; i++) {
+    const el = document.createElement('div');
+    el.className = 'star';
+    const sz = Math.random() * 2.5 + 0.5;
+    el.style.cssText = [
+      `width:${sz}px`, `height:${sz}px`,
+      `left:${Math.random()*100}%`, `top:${Math.random()*100}%`,
+      `--d:${(Math.random()*4+2).toFixed(1)}s`,
+      `--delay:${(Math.random()*7).toFixed(1)}s`,
+      `--max-op:${(Math.random()*.55+.15).toFixed(2)}`,
+    ].join(';');
+    c.appendChild(el);
+  }
+})();
+
+// PWA install prompt
+let deferredPrompt = null;
+const btnI = document.getElementById('btn-install');
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  btnI.classList.remove('hidden');
+});
+btnI.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  if (outcome === 'accepted') btnI.classList.add('hidden');
+});
+
+// iOS install hint
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone = ('standalone' in navigator) && navigator.standalone;
+if (isIOS && !isStandalone) document.getElementById('ios-hint').classList.add('show');
+
+// Service worker
+if ('serviceWorker' in navigator)
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+
 </body>
 </html>
