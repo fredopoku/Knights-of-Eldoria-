@@ -23,7 +23,7 @@ from pathlib import Path
 # do not rename
 async def custom_site():
     import embed
-    platform.document.body.style.background = "#7f7f7f"
+    platform.document.body.style.background = "#06060e"
 
     platform.window.transfer.hidden = true
     platform.window.canvas.style.visibility = "visible"
@@ -179,10 +179,11 @@ function show_infobox() {
     <title>Knights of Eldoria</title>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="height=device-height, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#06060e">
 
 
     <link rel="icon" type="image/png" href="favicon.png" sizes="16x16">
@@ -202,43 +203,60 @@ function show_infobox() {
             width: 300px;
         }
 
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background: #06060e !important;
+            overflow: hidden;
+            font-family: system-ui, arial, sans-serif;
+        }
+
         #infobox {
-            position: fixed; /* center relative to viewport */
-            background: green;
-            color: blue;
+            position: fixed;
+            background: rgba(18, 9, 40, 0.96);
+            color: #ffd720;
             font-weight: bold;
-            padding: 12px 24px;
- /*           display: none; */
+            font-size: 15px;
+            padding: 14px 28px;
             z-index: 999999;
+            border: 1px solid #3c2870;
+            border-radius: 10px;
+            letter-spacing: .03em;
         }
         div.emscripten { text-align: center; }
-        div.emscripten_border { border: 1px solid black; }
-        div.thick_border { border: 4px solid black; }
+        div.emscripten_border { border: 1px solid #3c2870; }
+        div.thick_border { border: 2px solid #3c2870; }
 
-        /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-        /* average size of droid screen 470dp x 320dp  */
+        /* Canvas must not have border/padding — mouse coords will be wrong */
         canvas.emscripten {
             border: 0px none;
-            background-color: transparent;
-            width: 100%;
-            height: 100%;
+            background: transparent;
+            width: 100vw;
+            height: 100vh;
             z-index: 5;
-
             padding: 0;
-            margin: 0 auto;
-
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            margin: 0;
+            position: fixed;
+            top: 0; left: 0;
+            object-fit: contain;
         }
 
-        body {
-            font-family: arial;
-            margin: 0;
-            padding: none;
-            background-color:powderblue;
+        /* Portrait rotation prompt — shown on phones held upright */
+        #rotate-overlay {
+            display: none;
+            position: fixed; inset: 0; z-index: 999998;
+            background: #06060e;
+            flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; color: #ddd0ff;
+            gap: 1rem;
+        }
+        #rotate-overlay .rot-icon { font-size: 3.5rem; animation: spin 2s infinite ease-in-out; }
+        @keyframes spin { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(90deg)} }
+        #rotate-overlay p { font-size: 1.1rem; color: #9060e8; margin: 0; }
+        #rotate-overlay small { font-size: .8rem; color: #5a4880; }
+        @media (orientation: portrait) and (max-device-width: 1024px) {
+            #rotate-overlay { display: flex; }
         }
 
         .topright{
@@ -297,6 +315,13 @@ function show_infobox() {
     </div>
 
 
+
+    <!-- Portrait rotation prompt -->
+    <div id="rotate-overlay">
+      <div class="rot-icon">📱</div>
+      <p>Rotate your device to play</p>
+      <small>Knights of Eldoria is best in landscape</small>
+    </div>
 
     <canvas class="emscripten" id="canvas"
 width="1px"
